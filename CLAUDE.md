@@ -1,0 +1,194 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+> **Note:** `install.sh` copies `claude-md-master/CLAUDE.md` to `~/.claude/CLAUDE.md` on every run (always overwrites). The "Global Claude Code Configuration" section below is kept in sync manually — edit `claude-md-master/CLAUDE.md` to change what gets installed globally.
+
+## Repository Overview
+
+`claude-local-starter` is a single-script bootstrap installer that replicates a full Claude Code environment onto any machine. It is not a library or application — the primary deliverable is `install.sh`.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `install.sh` | The installer — idempotent, safe to re-run |
+| `token-audit.sh` | Snapshot + restore extension states for token cost measurement |
+| `claude-md-master/CLAUDE.md` | Source of truth for `~/.claude/CLAUDE.md` — always overwrites on install |
+| `settings.json` | Source of truth for plugins, env vars, MCP servers, hooks — merged into `~/.claude/settings.json` |
+| `commands/` | Slash command definitions synced to `~/.claude/commands/` |
+| `skills/` | Custom skill directories synced to `~/.claude/skills/` |
+| `claude-local-starter.html` | Visual dashboard — open from `~/.claude/` after install (data is injected there) |
+
+### Installer Modes
+
+```bash
+bash install.sh                  # safe update — merges, never overwrites
+bash install.sh --clean-install  # full overwrite from repo (backs up first)
+bash install.sh --dry-run        # preview all actions, no changes written
+```
+
+### What install.sh Does (in order)
+
+1. Pre-flight checks (git, node, npm, python3, bun)
+2. Interactive prompts — preserve CLAUDE.md? preserve MCP/plugin/skill states? (update mode only)
+3. Backup mutable components (only on `--clean-install`)
+4. Create `~/.claude/` directory structure
+5. Install/merge `settings.json`
+6. Install `CLAUDE.md` from `claude-md-master/` (always overwrites)
+7. Install skills via `npx skills add` (patched with `disable-model-invocation: true`)
+8. Clone/update `blader/humanizer` skill
+9. Install `uipro-cli` globally
+10. Install LSP binaries (typescript-language-server, pyright, gopls, rust-analyzer, jdtls)
+11. Install `@playwright/cli`, run `playwright-cli install --skills`, install Chromium
+12. Register MCP servers via `npx gitnexus setup`
+13. Write `~/.claude/plugin_commands.sh` (manual paste into Claude Code)
+14. Create `~/.claude-work/` structure and templates
+15. Write shell aliases/functions to `~/.zshrc` / `~/.bashrc`
+16. Sync `commands/`, `skills/`, HTML dashboard → `~/.claude/` (with settings.json + CLAUDE.md injected into dashboard)
+
+### Shell Functions Installed
+
+After running the installer, these functions are available in your shell:
+
+- `cw` / `claude-work` — launch Claude with `~/.claude-work` context (exit and run `claude` to go without)
+- `enable-skill <name>` / `disable-skill <name>` — toggle `disable-model-invocation` in SKILL.md
+- `list-skills` — show all skills with context-on/off state
+- `enable-plugin <name>` / `disable-plugin <name>` — toggle `enabledPlugins` in settings.json
+- `list-plugins` — show all plugins with enabled/disabled state
+- `enable-mcp <name>` / `disable-mcp <name>` — toggle `disabled` flag in settings.json mcpServers
+- `list-mcps` — show all MCP servers with enabled/disabled state
+- `list-commands` — list all slash commands
+
+### MCP Servers Configured
+
+All disabled by default except `context7`. Use `enable-mcp <name>` to activate.
+
+| Server | Type | Purpose |
+|--------|------|---------|
+| `context7` | URL | Live documentation fetching (enabled by default) |
+| `gitnexus` | Command | Codebase knowledge graph (run `npx gitnexus analyze` per repo) |
+| `context-mode` | Command | Context-mode plugin support |
+| `claude-mem` | URL | Session memory (requires claude-mem plugin) |
+| `filesystem` | Command | Local file access (`${HOME}`) |
+| `supabase` | URL | Database queries |
+| `vercel` | URL | Deploy and logs |
+
+### Adding Custom Skills
+
+Place skill directories under `skills/` — each needs a `SKILL.md`. The installer syncs them to `~/.claude/skills/` without overwriting existing customisations.
+
+### Adding Custom Commands
+
+Place `.md` files under `commands/` — they sync to `~/.claude/commands/` and become available as `/command-name` inside Claude Code.
+
+---
+
+# Global Claude Code Configuration
+
+## Workflow Orchestration
+
+### 1. Plan Mode Default
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- Use **ultrathinking** in plan mode -- extended reasoning before committing to any approach
+- Log intent to `docs/plan.md` before implementation begins (pre-hook, append newest at top)
+- If something goes sideways, STOP and re-plan immediately -- don't keep pushing
+- Use plan mode for verification steps, not just building
+- Write detailed specs upfront to reduce ambiguity
+
+### 2. Subagent Strategy
+- **Always parallelise** -- spawn subagents simultaneously wherever tasks are independent
+- Use subagents liberally to keep main context window clean
+- Offload research, exploration, and parallel analysis to subagents
+- For complex problems, throw more compute at it via subagents
+- One task per subagent for focused execution
+
+### 3. External Integration Research
+- For ANY external third-party system (APIs, SDKs, cloud services, auth providers):
+  spawn a dedicated subagent to fetch live documentation via Context7 FIRST
+- Never rely on training data for external APIs -- they change frequently
+- This does NOT apply to internal microservices -- use the codebase directly
+
+### 4. Codebase Awareness
+- Before touching an unfamiliar codebase: run `npx gitnexus analyze` to build the graph
+- Use gitnexus impact and context tools to trace dependencies before any edit
+- Read sub-module CLAUDE.md files before working in any sub-directory
+- Create sub-module CLAUDE.md files progressively as you explore new directories
+- Run `/init-repo` once per project to scaffold everything at once
+
+### 5. Self-Improvement Loop
+- After ANY correction from the user: update `tasks/lessons.md` with the pattern
+- Write rules for yourself that prevent the same mistake
+- Ruthlessly iterate on these lessons until mistake rate drops
+- Review lessons at session start for relevant project
+
+### 6. Verification Before Done
+- Never mark a task complete without proving it works
+- Diff behavior between main and your changes when relevant
+- Ask yourself: "Would a staff engineer approve this?"
+- Run tests, check logs, demonstrate correctness
+
+### 7. Demand Elegance (Balanced)
+- For non-trivial changes: pause and ask "is there a more elegant way?"
+- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
+- Skip this for simple, obvious fixes -- don't over-engineer
+- Challenge your own work before presenting it
+
+### 8. Autonomous Bug Fixing
+- When given a bug report: just fix it. Don't ask for hand-holding
+- Point at logs, errors, failing tests -- then resolve them
+- Zero context switching required from the user
+- Go fix failing CI tests without being told how
+
+### 9. Progressive Discovery (Token Budget)
+- Load only what you need, when you need it -- never pre-load entire codebases
+- Read sub-module CLAUDE.md summaries before opening source files
+- Use gitnexus search and context tools before reaching for Read or Grep
+- Use ctx_search (context-mode) before reading raw files when available
+- Prefer targeted reads (specific functions, line ranges) over whole-file reads
+- Ask: "what is the minimum context needed to answer this correctly?"
+- Before starting any task, run `/context` and note the exact token count
+- If context usage exceeds 50%, spawn a fresh subagent rather than continuing in the main session
+- If context usage exceeds 70%, run `/log-context` then `/compact` immediately before proceeding
+
+## Task Management
+
+1. **Plan First**: Write plan to `tasks/todo.md` with checkable items
+2. **Log to docs/plan.md**: Append intent and tradeoffs before implementation (pre-hook)
+3. **Verify Plan**: Check in before starting implementation
+4. **Track Progress**: Mark items complete as you go in `tasks/todo.md`
+5. **Explain Changes**: High-level summary at each step
+6. **Log to audit/changelog.md**: Append what changed after implementation (post-hook)
+7. **Log to tasks/tracker.md**: Append task completion entry after each task (post-hook)
+8. **Capture Lessons**: Update `tasks/lessons.md` after corrections
+
+## Tracking Discipline
+
+All tracking files live inside the repo -- never in a global location.
+Create at repo root on first use. Before writing to any tracking file, load the
+corresponding format from the `aidlc-tracking` skill (`formats/<file>.md`) — never invent formats.
+
+| File | Purpose | Write rule | Format file |
+|------|---------|------------|-------------|
+| `docs/plan.md` | Architectural intent, written **before** implementation | Append newest at top | `aidlc-tracking/formats/plan.md` |
+| `tasks/todo.md` | Live execution tracking **during** a session | Rewrite as work evolves | `aidlc-tracking/formats/todo.md` |
+| `tasks/tracker.md` | Append-only log of every task + pre-compact snapshots | Append newest at top | `aidlc-tracking/formats/tracker.md` |
+| `tasks/lessons.md` | Per-repo learning log, one entry per lesson | Append newest at top | `aidlc-tracking/formats/lessons.md` |
+| `audit/changelog.md` | What changed in the codebase, written **after** implementation | Append newest at top | `aidlc-tracking/formats/changelog.md` |
+| `docs/design-review.md` | Council review output from `/design-review` | Append newest at top | `aidlc-tracking/formats/design-review.md` |
+
+## Pre-Compact Rule
+
+Before running or suggesting `/compact`:
+1. Run `/log-context` to write a pre-compact snapshot to `tasks/tracker.md`
+2. Then proceed with `/compact`
+
+When context auto-compaction is imminent (≥70%), always run `/log-context` first.
+
+## Core Principles
+
+- **R-P-I (Reason, Plan, Implement)**: Before acting on anything non-trivial, reason through it first, write a plan, then implement. Never skip to implementation. Apply this to every decision, not just code.
+- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
+- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+- **Security Mindset**: Flag potential security issues. Never hardcode credentials.

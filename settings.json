@@ -1,0 +1,87 @@
+{
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "jdtls-lsp@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": false,
+    "superpowers@claude-plugins-official": false,
+    "claude-code-setup@claude-plugins-official": false,
+    "ralph-loop@claude-plugins-official": false,
+    "code-review@claude-plugins-official": false,
+    "hookify@anthropics/claude-code": false,
+    "feature-dev@anthropics/claude-code": false,
+    "pr-review-toolkit@anthropics/claude-code": false,
+    "claude-md-management@claude-plugins-official": false,
+    "claude-mem@claude-plugins-official": false,
+    "obsidian@obsidian-skills": false,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": false,
+    "context-mode@claude-context-mode": false
+  },
+  "env": {
+    "ENABLE_LSP_TOOL": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"## $(date '+%Y-%m-%d %H:%M:%S') \u2014 [Auto-Compact Triggered]\\n**Type:** pre-compact\\n**Note:** Auto-compaction fired. Run /log-context in next session to restore full detail.\" >> tasks/tracker.md 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  },
+  "mcpServers": {
+    "context7": {
+      "type": "url",
+      "url": "https://mcp.context7.com/mcp",
+      "disabled": false
+    },
+    "gitnexus": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "gitnexus@latest",
+        "mcp"
+      ],
+      "disabled": true
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${HOME}"
+      ],
+      "disabled": true
+    },
+    "vercel": {
+      "type": "url",
+      "url": "https://mcp.vercel.com",
+      "disabled": true
+    },
+    "supabase": {
+      "type": "url",
+      "url": "https://mcp.supabase.com/mcp",
+      "disabled": true
+    },
+    "claude-mem": {
+      "type": "url",
+      "url": "http://localhost:37777/mcp",
+      "disabled": true
+    },
+    "context-mode": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "context-mode"
+      ],
+      "disabled": true
+    }
+  }
+}

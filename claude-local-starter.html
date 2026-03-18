@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>claude-local-starter</title>
+<style>
+  :root {
+    --bg:           #0c0c0f;
+    --s1:           #111115;
+    --s2:           #16161b;
+    --s3:           #1c1c23;
+    --s4:           #222229;
+    --border:       rgba(255,255,255,.06);
+    --border-h:     rgba(255,255,255,.10);
+    --border-g:     rgba(74,222,128,.25);
+
+    --t0:  #f0f0f5;
+    --t1:  #8e909c;
+    --t2:  #4e5060;
+
+    --green:  #4ade80;
+    --gd:     rgba(74,222,128,.10);
+    --blue:   #60a5fa;
+    --bd:     rgba(96,165,250,.10);
+    --orange: #f97316;
+    --od:     rgba(249,115,22,.10);
+    --yellow: #fbbf24;
+    --yd:     rgba(251,191,36,.10);
+    --purple: #a78bfa;
+    --pd:     rgba(167,139,250,.10);
+
+    --mono: 'Fira Code','Cascadia Code','JetBrains Mono',ui-monospace,'SF Mono',monospace;
+    --sans: system-ui,-apple-system,'Segoe UI',sans-serif;
+    --ease: .14s cubic-bezier(.4,0,.2,1);
+    --r:    6px;
+  }
+
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  html { font-size:14px; }
+  body {
+    background: var(--bg);
+    color: var(--t0);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* subtle ambient glow */
+  body::before {
+    content:'';
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(ellipse 70% 40% at 15% 10%, rgba(74,222,128,.024) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 35% at 85% 85%, rgba(96,165,250,.016) 0%, transparent 70%);
+  }
+
+  /* ── NAV ── */
+  .nav {
+    position:sticky; top:0; z-index:100;
+    height:50px;
+    display:flex; align-items:center; gap:0;
+    padding:0 24px;
+    background:rgba(12,12,15,.93);
+    backdrop-filter:blur(24px) saturate(160%);
+    border-bottom:1px solid var(--border);
+  }
+
+  .brand {
+    font-family:var(--mono);
+    font-size:13px; font-weight:700;
+    letter-spacing:-.01em;
+    color:var(--t0);
+    margin-right:28px;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .brand em { color:var(--green); font-style:normal; }
+
+  .tabs { display:flex; align-items:stretch; }
+  .tab {
+    font-family:var(--mono);
+    font-size:11px; font-weight:500; letter-spacing:.01em;
+    color:var(--t2);
+    padding:0 14px;
+    height:50px;
+    display:flex; align-items:center;
+    border-bottom:2px solid transparent;
+    cursor:pointer;
+    transition:color var(--ease), border-color var(--ease);
+    white-space:nowrap; user-select:none;
+  }
+  .tab:hover { color:var(--t1); }
+  .tab.on {
+    color:var(--green);
+    border-bottom-color:var(--green);
+  }
+  .nav-r { margin-left:auto; }
+  .gh {
+    display:flex; align-items:center; justify-content:center;
+    width:30px; height:30px;
+    color:var(--t0);
+    text-decoration:none;
+    background:var(--s3);
+    border:1px solid var(--border-h);
+    border-radius:6px;
+    transition:color var(--ease), border-color var(--ease), background var(--ease);
+  }
+  .gh:hover { color:var(--green); border-color:var(--border-g); background:var(--gd); }
+  .gh svg { width:15px; height:15px; fill:currentColor; display:block; }
+
+  /* ── TOKEN BADGE ── */
+  .tok {
+    font-family:var(--mono);
+    font-size:9px; font-weight:500; letter-spacing:.03em;
+    padding:2px 6px; border-radius:4px;
+    white-space:nowrap; flex-shrink:0;
+    border:1px solid transparent;
+  }
+  .tok-ctx  { background:rgba(251,191,36,.08);  color:#d4a017; border-color:rgba(251,191,36,.18); }
+  .tok-tool { background:rgba(96,165,250,.08);   color:var(--blue); border-color:rgba(96,165,250,.18); }
+  .tok-idle { background:rgba(80,80,100,.15);    color:var(--t2); border-color:var(--border); }
+
+  /* ── LAYOUT ── */
+  .page {
+    display:none;
+    max-width:1480px; margin:0 auto;
+    padding:32px 32px 72px;
+    position:relative; z-index:1;
+  }
+  .page.on { display:block; }
+
+  .ph { margin-bottom:28px; }
+  .pt {
+    font-family:var(--mono);
+    font-size:17px; font-weight:700; letter-spacing:-.03em;
+    margin-bottom:6px;
+  }
+  .ps { font-size:12px; color:var(--t1); line-height:1.65; max-width:640px; }
+
+  /* ── SECTIONS ── */
+  .section { margin-bottom:24px; }
+  .sh {
+    font-family:var(--mono);
+    font-size:10px; font-weight:500;
+    color:var(--t2); letter-spacing:.1em; text-transform:uppercase;
+    margin-bottom:8px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .sh::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* ── CARDS ── */
+  .items {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:4px;
+    align-items:start;
+  }
+  @media(max-width:1024px){ .items{ grid-template-columns:repeat(2,1fr); } }
+  @media(max-width:600px) { .items{ grid-template-columns:1fr; } }
+
+  .item {
+    background:var(--s1);
+    border:1px solid var(--border);
+    border-left:2px solid var(--border);
+    border-radius:var(--r);
+    padding:13px 15px;
+    transition:border-color var(--ease), background var(--ease), border-left-color var(--ease);
+    position:relative;
+  }
+  .item:hover {
+    background:var(--s2);
+    border-color:var(--border-h);
+  }
+
+  .item.plugin:hover { border-left-color:var(--orange); }
+  .item.skill:hover  { border-left-color:var(--blue); }
+  .item.mcp:hover    { border-left-color:var(--yellow); }
+  .item.lsp:hover    { border-left-color:var(--purple); }
+
+  .ihead {
+    display:flex; align-items:center;
+    gap:10px; margin-bottom:5px;
+  }
+  .iname {
+    font-family:var(--mono);
+    font-size:12px; font-weight:600; letter-spacing:-.01em;
+    color:var(--t0);
+  }
+  .iname a { color:inherit; text-decoration:none; }
+  .iname a:hover { color:var(--blue); text-decoration:underline; text-underline-offset:3px; }
+  .itags { display:flex; gap:4px; flex-wrap:wrap; margin-left:auto; flex-shrink:0; }
+
+  .tag {
+    font-family:var(--mono);
+    font-size:9px; font-weight:500; letter-spacing:.05em;
+    padding:2px 7px; border-radius:20px;
+    border:1px solid transparent; text-transform:uppercase;
+  }
+  .tag.official  { background:var(--od); color:var(--orange); border-color:rgba(251,146,60,.2); }
+  .tag.community { background:var(--gd); color:var(--green);  border-color:rgba(74,222,128,.2); }
+  .tag.bundled   { background:var(--bd); color:var(--blue);   border-color:rgba(96,165,250,.2); }
+  .tag.lsp       { background:var(--pd); color:var(--purple); border-color:rgba(167,139,250,.2); }
+  .idesc {
+    font-size:12px; color:var(--t1); line-height:1.55;
+    margin-bottom:6px;
+  }
+  .icmd {
+    display:inline-block;
+    font-family:var(--mono); font-size:10px;
+    color:var(--t2);
+    background:var(--bg); border:1px solid var(--border); border-radius:4px;
+    padding:3px 9px; margin-top:4px;
+    user-select:all; cursor:text;
+  }
+
+  /* ── CODE BLOCKS ── */
+  .copy-block { position:relative; margin-top:7px; }
+  .copy-block pre {
+    background:var(--bg); border:1px solid var(--border); border-radius:4px;
+    padding:8px 50px 8px 12px;
+    font-family:var(--mono); font-size:10.5px; color:var(--t1); line-height:1.65;
+    white-space:pre; overflow-x:auto; margin:0;
+  }
+  .copy-btn {
+    position:absolute; top:6px; right:6px;
+    background:var(--s2); border:1px solid var(--border);
+    color:var(--t2);
+    font-family:var(--mono); font-size:9px; font-weight:500; letter-spacing:.04em;
+    padding:3px 8px; border-radius:4px;
+    cursor:pointer; text-transform:uppercase;
+    transition:color var(--ease), border-color var(--ease), background var(--ease);
+  }
+  .copy-btn:hover  { color:var(--green); border-color:var(--border-g); background:var(--gd); }
+  .copy-btn.copied { color:var(--green); border-color:var(--border-g); }
+
+  /* ── INLINE CODE ── */
+  code {
+    font-family:var(--mono); font-size:10.5px;
+    background:var(--s2); border:1px solid var(--border); border-radius:3px;
+    padding:1px 5px; color:var(--green);
+  }
+
+  /* ── README ── */
+  .rm { max-width:960px; width:100%; }
+  .rm h2 {
+    font-family:var(--mono); font-size:12px; font-weight:700;
+    color:var(--t0); letter-spacing:-.01em;
+    margin:26px 0 7px;
+  }
+  .rm h3 {
+    font-family:var(--mono); font-size:9px; font-weight:600;
+    color:var(--t2); text-transform:uppercase; letter-spacing:.1em;
+    margin:16px 0 5px;
+  }
+  .rm p  { font-size:12px; color:var(--t1); line-height:1.7; margin-bottom:8px; }
+  .rm pre {
+    background:var(--s1); border:1px solid var(--border); border-radius:var(--r);
+    padding:13px 15px; font-family:var(--mono); font-size:11px; color:var(--t1);
+    overflow-x:auto; margin-bottom:10px; line-height:1.7;
+  }
+  .rm ul { padding-left:16px; margin-bottom:8px; }
+  .rm li { font-size:12px; color:var(--t1); margin-bottom:4px; }
+
+  /* ── README 3-col grid ── */
+  .rm-grid {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:0 32px;
+    align-items:start;
+  }
+  @media(max-width:900px){ .rm-grid{ grid-template-columns:1fr 1fr; } }
+  @media(max-width:600px){ .rm-grid{ grid-template-columns:1fr; } }
+
+  /* ── VIEWER SHARED ── */
+  .viewer-toolbar {
+    display:flex; align-items:center; gap:10px;
+    margin-bottom:16px;
+  }
+  .viewer-btn {
+    font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:.04em;
+    text-transform:uppercase;
+    background:var(--s2); border:1px solid var(--border); color:var(--t2);
+    padding:5px 12px; border-radius:var(--r);
+    cursor:pointer;
+    transition:color var(--ease), border-color var(--ease), background var(--ease);
+  }
+  .viewer-btn:hover  { color:var(--green); border-color:var(--border-g); background:var(--gd); }
+  .viewer-btn.active { color:var(--green); border-color:var(--border-g); background:var(--gd); }
+  .viewer-confirm {
+    font-family:var(--mono); font-size:10px; color:var(--green);
+    opacity:0; transition:opacity .3s;
+  }
+  .viewer-not-injected {
+    font-family:var(--mono); font-size:12px; color:var(--t2);
+    background:var(--s1); border:1px solid var(--border); border-radius:var(--r);
+    padding:16px;
+  }
+
+  /* ── JSON TREE VIEWER ── */
+  .jt-root {
+    font-family:var(--mono); font-size:12px;
+    background:var(--s1); border:1px solid var(--border); border-radius:var(--r);
+    padding:8px; overflow:auto;
+    max-height:calc(100vh - 240px);
+  }
+  .jt-wrap:not(.open) > .jt-children { display:none; }
+  .jt-row {
+    display:flex; align-items:center; gap:5px;
+    padding:2px 6px; cursor:pointer; border-radius:3px;
+    min-height:22px; user-select:none;
+  }
+  .jt-row:hover { background:var(--s2); }
+  .jt-children { margin-left:14px; border-left:1px solid var(--border); padding-left:4px; }
+  .jt-arrow {
+    width:14px; flex-shrink:0; font-size:9px; color:var(--t2);
+    transition:transform .12s; display:inline-block; text-align:center;
+  }
+  .jt-wrap.open > .jt-row > .jt-arrow { transform:rotate(90deg); }
+  .jt-badge {
+    font-size:9px; font-weight:600; letter-spacing:.03em;
+    padding:1px 5px; border-radius:3px; flex-shrink:0;
+  }
+  .jt-obj-badge { background:var(--bd); color:var(--blue);   border:1px solid rgba(96,165,250,.2); }
+  .jt-arr-badge { background:var(--od); color:var(--orange); border:1px solid rgba(249,115,22,.2); }
+  .jt-key   { color:var(--blue); }
+  .jt-colon { color:var(--t2); flex-shrink:0; }
+  .jt-count { color:var(--t2); font-size:10px; }
+  .jt-str   { color:var(--green); }
+  .jt-num   { color:var(--orange); }
+  .jt-bool  { color:var(--yellow); }
+  .jt-null  { color:var(--purple); }
+  .jt-leaf  { display:flex; align-items:center; gap:5px; padding:2px 6px; margin-left:14px; min-height:22px; }
+
+  /* ── CONFIG TAB GRID ── */
+  .config-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:0 20px; align-items:start;
+  }
+  @media(max-width:960px){ .config-grid{ grid-template-columns:1fr; } }
+  .config-col-header {
+    font-family:var(--mono); font-size:10px; font-weight:600;
+    letter-spacing:.06em; text-transform:uppercase; color:var(--t2);
+    margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .config-col-header .config-col-name { color:var(--t0); }
+
+  /* ── MARKDOWN VIEWER ── */
+  .mv-container { max-width:800px; max-height:calc(100vh - 240px); overflow:auto; scrollbar-gutter:stable; }
+  .mv-section {
+    border:1px solid var(--border); border-radius:var(--r);
+    overflow:hidden; margin-bottom:6px; background:var(--s1);
+  }
+  .mv-section-header {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 14px;
+    cursor:pointer; user-select:none;
+    transition:background var(--ease);
+  }
+  .mv-section-header:hover { background:var(--s2); }
+  .mv-section-title { font-family:var(--mono); font-size:12px; font-weight:700; color:var(--blue); }
+  .mv-sec-prefix { color:var(--t2); }
+  .mv-section-arrow { margin-left:auto; color:var(--t2); font-size:10px; transition:transform var(--ease); }
+  .mv-section.open .mv-section-arrow { transform:rotate(90deg); }
+  .mv-section-body { display:none; border-top:1px solid var(--border); padding:14px 16px; }
+  .mv-section.open .mv-section-body { display:block; }
+  .mv-rendered h1 { display:none; }
+  .mv-rendered h2 { font-family:var(--mono); font-size:12px; font-weight:700; color:var(--t0); margin:14px 0 5px; }
+  .mv-rendered h3 { font-family:var(--mono); font-size:11px; font-weight:700; color:var(--t0); letter-spacing:.02em; margin:16px 0 6px; border-left:2px solid var(--border-g); padding-left:8px; }
+  .mv-rendered p  { font-size:12px; color:var(--t1); line-height:1.7; margin:0 0 8px; }
+  .mv-rendered ul, .mv-rendered ol { padding-left:18px; margin:0 0 8px; }
+  .mv-rendered li { font-size:12px; color:var(--t1); margin-bottom:3px; }
+  .mv-rendered pre { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:10px 13px; font-family:var(--mono); font-size:11px; color:var(--t1); overflow-x:auto; margin:5px 0 8px; line-height:1.65; white-space:pre-wrap; }
+  .mv-rendered code { font-family:var(--mono); font-size:10.5px; background:var(--s2); border:1px solid var(--border); border-radius:3px; padding:1px 5px; color:var(--green); }
+  .mv-rendered pre code { background:none; border:none; padding:0; color:var(--t1); }
+  .mv-rendered strong { color:var(--t0); font-weight:600; }
+  .mv-rendered table { width:100%; border-collapse:collapse; margin:6px 0 10px; font-size:12px; }
+  .mv-rendered th { font-family:var(--mono); font-size:10px; color:var(--t2); text-transform:uppercase; letter-spacing:.06em; padding:6px 10px; border-bottom:1px solid var(--border); text-align:left; }
+  .mv-rendered td { padding:6px 10px; border-bottom:1px solid var(--border); color:var(--t1); vertical-align:top; }
+  .mv-rendered hr { border:none; border-top:1px solid var(--border); margin:14px 0; }
+  .mv-rendered blockquote { border-left:3px solid var(--border-g); padding-left:12px; margin:6px 0; color:var(--t2); font-size:12px; }
+  .mv-raw-text {
+    font-family:var(--mono); font-size:11px; color:var(--t1); line-height:1.65;
+    white-space:pre-wrap; word-break:break-word;
+    background:var(--s1); border:1px solid var(--border); border-radius:var(--r);
+    padding:16px; margin:0;
+    max-height:80vh; overflow-y:auto;
+  }
+  /* when raw text is inside jt-root, suppress the redundant nested box */
+  .jt-root .mv-raw-text { background:transparent; border:none; border-radius:0; padding:0; max-height:none; overflow:visible; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="brand">claude-<em>local</em>-starter</div>
+  <div class="tab on" onclick="show('plugins',this)">plugins</div>
+  <div class="tab"    onclick="show('skills',this)">skills</div>
+  <div class="tab"    onclick="show('mcp',this)">mcp</div>
+  <div class="tab"    onclick="show('config',this)">config</div>
+  <div class="tab"    onclick="show('readme',this)">readme</div>
+  <div class="nav-r">
+    <a class="gh" href="https://github.com/indranildchandra/claude-local-starter" target="_blank" title="GitHub">
+      <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+    </a>
+  </div>
+</nav>
+
+<!-- ══ PLUGINS ══ -->
+<div class="page on" id="pg-plugins">
+  <div class="ph">
+    <div class="pt" style="color:var(--orange)">plugins</div>
+    <div class="ps">Install inside an active Claude Code session. Paste the commands shown on each card. LSP plugins are always active. All others are disabled by default — use <code>enable-plugin &lt;name&gt;</code> + restart to activate.</div>
+  </div>
+
+  <div class="section">
+    <div class="sh">Workflow — disabled by default</div>
+    <div class="items">
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-plugins-official/tree/main/plugins/claude-code-setup" target="_blank" rel="noopener">claude-code-setup</a></span><span class="tok tok-ctx">~101 tokens</span><div class="itags"><span class="tag official">official</span></div></div>
+        <div class="idesc">Analyzes codebase and recommends tailored automations. Run once per new project.</div>
+        <div class="copy-block"><pre>/plugin install claude-code-setup@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-plugins-official/tree/main/plugins/claude-md-management" target="_blank" rel="noopener">claude-md-management</a></span><span class="tok tok-ctx">~117 tokens</span><div class="itags"><span class="tag official">official</span></div></div>
+        <div class="idesc">Audits CLAUDE.md quality and captures session learnings.</div>
+        <div class="copy-block"><pre>/plugin install claude-md-management@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-code/tree/main/plugins/ralph-wiggum" target="_blank" rel="noopener">ralph-loop</a></span><span class="tok tok-ctx">~42 tokens</span><div class="itags"><span class="tag official">official</span></div></div>
+        <div class="idesc">Autonomous iteration until specs pass. For unattended runs.</div>
+        <div class="copy-block"><pre>/plugin install ralph-loop@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/thedotmack/claude-mem" target="_blank" rel="noopener">claude-mem</a></span><span class="tok tok-tool">token usage varies</span><div class="itags"><span class="tag community">thedotmack</span></div></div>
+        <div class="idesc">Session memory — captures activity, injects context into future sessions. Requires Bun.</div>
+        <div class="copy-block"><pre>/plugin marketplace add thedotmack/claude-mem
+/plugin install claude-mem</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/obra/superpowers" target="_blank" rel="noopener">superpowers</a></span><span class="tok tok-ctx">~924 tokens</span><div class="itags"><span class="tag official">official</span></div></div>
+        <div class="idesc">TDD red-green-refactor with hard gates, Socratic brainstorming, subagent-driven development with built-in code review. Requires Bun.</div>
+        <div class="copy-block"><pre>/plugin install superpowers@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/kepano/obsidian-skills" target="_blank" rel="noopener">obsidian-skills</a></span><span class="tok tok-ctx">~396 tokens</span><div class="itags"><span class="tag community">kepano</span></div></div>
+        <div class="idesc">Obsidian vault operations. By kepano (Obsidian CEO).</div>
+        <div class="copy-block"><pre>/plugin marketplace add kepano/obsidian-skills
+/plugin install obsidian@obsidian-skills</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-code/tree/main/plugins/pr-review-toolkit" target="_blank" rel="noopener">pr-review-toolkit</a></span><span class="tok tok-tool">token usage varies</span><div class="itags"><span class="tag official">official</span></div></div>
+        <div class="idesc">6 specialist agents for deep PR review. Use before merging anything non-trivial.</div>
+        <div class="copy-block"><pre>/plugin install pr-review-toolkit@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-code/tree/main/plugins/code-review" target="_blank" rel="noopener">code-review</a></span><span class="tok tok-ctx">~13 tokens</span><div class="itags"><span class="tag official">official</span></div></div>
+        <div class="idesc">5 parallel Sonnet agents for quick automated PR sweeps.</div>
+        <div class="copy-block"><pre>/plugin install code-review@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-code/tree/main/plugins/feature-dev" target="_blank" rel="noopener">feature-dev</a></span><span class="tok tok-tool">token usage varies</span><div class="itags"><span class="tag official">official</span></div></div>
+        <div class="idesc">4-agent feature workflow: explorer, architect, implementer, reviewer.</div>
+        <div class="copy-block"><pre>/plugin install feature-dev@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/mksglu/context-mode" target="_blank" rel="noopener">context-mode</a></span><span class="tok tok-tool">tools only</span><div class="itags"><span class="tag community">mksglu</span></div></div>
+        <div class="idesc">Compresses MCP tool outputs 98% — 315KB becomes 5.4KB. Extends sessions 6×. Enable for long agentic work.</div>
+        <div class="copy-block"><pre>/plugin marketplace add mksglu/claude-context-mode
+/plugin install context-mode@claude-context-mode</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-code/tree/main/plugins/hookify" target="_blank" rel="noopener">hookify</a></span><span class="tok tok-tool">tools only</span><div class="itags"><span class="tag official">official</span></div></div>
+        <div class="idesc">Create hook rules via markdown files. Block/warn/allow on bash/file/stop events.</div>
+        <div class="copy-block"><pre>/plugin install hookify@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-plugins-official/tree/main/plugins/frontend-design" target="_blank" rel="noopener">frontend-design</a></span><span class="tok tok-ctx">~67 tokens</span><div class="itags"><span class="tag official">official</span></div></div>
+        <div class="idesc">Production-grade UI with bold aesthetic direction.</div>
+        <div class="copy-block"><pre>/plugin marketplace add anthropics/skills
+/plugin install frontend-design@anthropics/skills</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item plugin">
+        <div class="ihead"><span class="iname"><a href="https://github.com/nextlevelbuilder/ui-ux-pro-max-skill" target="_blank" rel="noopener">ui-ux-pro-max</a></span><span class="tok tok-ctx">~236 tokens</span><div class="itags"><span class="tag community">nextlevelbuilder</span></div></div>
+        <div class="idesc">161 design rules, 67 UI styles, 57 font pairings. Enable for UI-heavy sessions.</div>
+        <div class="copy-block"><pre>/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill
+/plugin install ui-ux-pro-max@ui-ux-pro-max-skill</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sh">LSP — always active</div>
+    <div class="items">
+      <div class="item lsp">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-plugins-official/tree/main/plugins/typescript-lsp" target="_blank" rel="noopener">typescript-lsp</a></span><span class="tok tok-tool">tools only</span><div class="itags"><span class="tag lsp">LSP</span><span class="tag official">official</span></div></div>
+        <div class="idesc">TypeScript / JS type errors, go-to-definition, find-all-references after every edit.</div>
+        <div class="copy-block"><pre>/plugin install typescript-lsp@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item lsp">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-plugins-official/tree/main/plugins/pyright-lsp" target="_blank" rel="noopener">pyright-lsp</a></span><span class="tok tok-tool">tools only</span><div class="itags"><span class="tag lsp">LSP</span><span class="tag official">official</span></div></div>
+        <div class="idesc">Python static type checking and code intelligence. Requires: <code>pip install pyright</code></div>
+        <div class="copy-block"><pre>/plugin install pyright-lsp@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item lsp">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-plugins-official/tree/main/plugins/gopls-lsp" target="_blank" rel="noopener">gopls-lsp</a></span><span class="tok tok-tool">tools only</span><div class="itags"><span class="tag lsp">LSP</span><span class="tag official">official</span></div></div>
+        <div class="idesc">Go language server. Requires: <code>go install golang.org/x/tools/gopls@latest</code></div>
+        <div class="copy-block"><pre>/plugin install gopls-lsp@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item lsp">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-plugins-official/tree/main/plugins/rust-analyzer-lsp" target="_blank" rel="noopener">rust-analyzer-lsp</a></span><span class="tok tok-tool">tools only</span><div class="itags"><span class="tag lsp">LSP</span><span class="tag official">official</span></div></div>
+        <div class="idesc">Rust language intelligence. Requires: <code>rustup component add rust-analyzer</code></div>
+        <div class="copy-block"><pre>/plugin install rust-analyzer-lsp@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item lsp">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-plugins-official/tree/main/plugins/jdtls-lsp" target="_blank" rel="noopener">jdtls-lsp</a></span><span class="tok tok-tool">tools only</span><div class="itags"><span class="tag lsp">LSP</span><span class="tag official">official</span></div></div>
+        <div class="idesc">Java (Eclipse JDT). JVM warmup ~8s on first session. Requires: <code>brew install jdtls</code></div>
+        <div class="copy-block"><pre>/plugin install jdtls-lsp@claude-plugins-official</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SKILLS ══ -->
+<div class="page" id="pg-skills">
+  <div class="ph">
+    <div class="pt" style="color:var(--blue)">skills</div>
+    <div class="ps">SKILL.md files in <code>~/.claude/skills/</code>. Toggle with <code>enable-skill</code> / <code>disable-skill</code> / <code>list-skills</code>.</div>
+  </div>
+
+  <div class="section">
+    <div class="sh">Process &amp; Review</div>
+    <div class="items">
+      <div class="item skill">
+        <div class="ihead"><span class="iname">aidlc-tracking</span><span class="tok tok-ctx">~43 tokens</span><div class="itags"><span class="tag bundled">custom</span></div></div>
+        <div class="idesc">Canonical formats for all AIDLC tracking files — plan.md, tracker.md, todo.md, lessons.md, changelog.md, design-review.md. Load only the format file you need.</div>
+        <div class="icmd">invoked by /init-repo · /log-context · /design-review</div>
+      </div>
+      <div class="item skill">
+        <div class="ihead"><span class="iname">review-council</span><span class="tok tok-ctx">~47 tokens</span><div class="itags"><span class="tag bundled">custom</span></div></div>
+        <div class="idesc">Multi-persona council for architecture and design reviews. 20 standard personas, on-demand loading, parallel subagent analysis, structured debate.</div>
+        <div class="icmd">invoked by /design-review</div>
+      </div>
+      <div class="item skill">
+        <div class="ihead"><span class="iname"><a href="https://github.com/blader/humanizer" target="_blank" rel="noopener">humanizer</a></span><span class="tok tok-ctx">~111 tokens</span><div class="itags"><span class="tag community">blader/humanizer</span></div></div>
+        <div class="idesc">Strips 24 AI writing patterns. Enable when editing content for human readers.</div>
+        <div class="copy-block"><pre>enable-skill humanizer</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sh">Dev Tools</div>
+    <div class="items">
+      <div class="item skill">
+        <div class="ihead"><span class="iname"><a href="https://github.com/microsoft/playwright-cli" target="_blank" rel="noopener">playwright-cli</a></span><span class="tok tok-ctx">~1,863 tokens</span><div class="itags"><span class="tag community">microsoft</span></div></div>
+        <div class="idesc">Browser automation and visual testing. Records interactions, takes screenshots, runs cross-browser tests. Skills installed via <code>playwright-cli install --skills</code>.</div>
+        <div class="copy-block"><pre>npm install -g @playwright/cli@latest
+cd ~ && playwright-cli install --skills
+playwright install chromium</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sh">Frontend &amp; Design</div>
+    <div class="items">
+      <div class="item skill">
+        <div class="ihead"><span class="iname"><a href="https://github.com/nextlevelbuilder/ui-ux-pro-max-skill" target="_blank" rel="noopener">ui-ux-pro-max</a></span><span class="tok tok-ctx">~232 tokens</span><div class="itags"><span class="tag community">community</span></div></div>
+        <div class="idesc">161 design rules, 67 UI styles, 57 font pairings. Context-heavy — enable globally, init per project.</div>
+        <div class="copy-block"><pre>enable-skill ui-ux-pro-max
+cd your-project && uipro init --ai claude</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item skill">
+        <div class="ihead"><span class="iname"><a href="https://github.com/shadcn-ui/ui/tree/main/skills/shadcn" target="_blank" rel="noopener">shadcn</a></span><span class="tok tok-ctx">~98 tokens</span><div class="itags"><span class="tag community">shadcn/ui</span></div></div>
+        <div class="idesc">Deep shadcn/ui knowledge — CLI, theming, components.json. Per-project init required.</div>
+        <div class="copy-block"><pre>enable-skill shadcn
+cd your-project && npx shadcn@latest init</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item skill">
+        <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/skills/tree/main/skills/frontend-design" target="_blank" rel="noopener">frontend-design</a></span><span class="tok tok-ctx">~104 tokens</span><div class="itags"><span class="tag bundled">anthropics/skills</span></div></div>
+        <div class="idesc">Bold production UI. Auto-activates when building any frontend component or page.</div>
+        <div class="copy-block"><pre>enable-skill frontend-design</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item skill">
+        <div class="ihead"><span class="iname"><a href="https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines" target="_blank" rel="noopener">web-design-guidelines</a></span><span class="tok tok-ctx">~52 tokens</span><div class="itags"><span class="tag community">vercel-labs</span></div></div>
+        <div class="idesc">Vercel Labs web design best practices — layout, typography, accessibility.</div>
+        <div class="copy-block"><pre>enable-skill web-design-guidelines</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sh">Document Tools</div>
+    <div class="items">
+      <div class="item skill">
+        <div class="ihead"><span class="iname">docx / pdf / pptx / xlsx</span><span class="tok tok-ctx">~50 tokens each</span><div class="itags"><span class="tag bundled">bundled</span></div></div>
+        <div class="idesc">Document creation and manipulation. Auto-activates for any Office file request.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MCP ══ -->
+<div class="page" id="pg-mcp">
+  <div class="ph">
+    <div class="pt" style="color:var(--yellow)">mcp servers</div>
+    <div class="ps">Pre-configured in <code>~/.claude/settings.json</code>. All disabled by default except context7. Use <code>enable-mcp &lt;name&gt;</code> to activate — restart Claude Code to apply.</div>
+  </div>
+
+  <div class="items">
+    <div class="item mcp">
+      <div class="ihead"><span class="iname"><a href="https://github.com/upstash/context7" target="_blank" rel="noopener">context7</a></span></div>
+      <div class="idesc">Live library docs on demand. Prevents API hallucinations. Auto-triggered on library questions.</div>
+      <div class="copy-block"><pre>"type": "url", "url": "https://mcp.context7.com/mcp"</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+    </div>
+    <div class="item mcp">
+      <div class="ihead"><span class="iname"><a href="https://github.com/abhigyanpatwari/GitNexus" target="_blank" rel="noopener">gitnexus</a></span></div>
+      <div class="idesc">Codebase knowledge graph. Per-repo: <code>npx gitnexus analyze</code>. Tools: query, impact, context, detect_changes.</div>
+      <div class="copy-block"><pre>"command": "npx", "args": ["-y", "gitnexus@latest", "mcp"]</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+    </div>
+    <div class="item mcp">
+      <div class="ihead"><span class="iname"><a href="https://github.com/mksglu/context-mode" target="_blank" rel="noopener">context-mode</a></span></div>
+      <div class="idesc">Compresses MCP tool outputs via sandbox. Only summaries enter context window. Tools: ctx_search, ctx_execute, ctx_batch_execute, ctx_index.</div>
+      <div class="copy-block"><pre>"command": "npx", "args": ["-y", "context-mode"]</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+    </div>
+    <div class="item mcp">
+      <div class="ihead"><span class="iname"><a href="https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem" target="_blank" rel="noopener">filesystem</a></span></div>
+      <div class="idesc">Local file access beyond current working directory. Resolves to <code>${HOME}</code> automatically.</div>
+      <div class="copy-block"><pre>"command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "${HOME}"]</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+    </div>
+    <div class="item mcp">
+      <div class="ihead"><span class="iname"><a href="https://github.com/thedotmack/claude-mem" target="_blank" rel="noopener">claude-mem</a></span></div>
+      <div class="idesc">Session memory on localhost:37777. Active once claude-mem plugin is installed and running.</div>
+      <div class="copy-block"><pre>"type": "url", "url": "http://localhost:37777/mcp"</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+    </div>
+    <div class="item mcp">
+      <div class="ihead"><span class="iname"><a href="https://github.com/supabase-community/supabase-mcp" target="_blank" rel="noopener">supabase</a></span></div>
+      <div class="idesc">Query databases, run SQL, inspect schemas.</div>
+      <div class="copy-block"><pre>"type": "url", "url": "https://mcp.supabase.com/mcp"</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+    </div>
+    <div class="item mcp">
+      <div class="ihead"><span class="iname"><a href="https://vercel.com/docs/agent-resources/vercel-mcp" target="_blank" rel="noopener">vercel</a></span></div>
+      <div class="idesc">Deploy, check status, view logs from CLI sessions.</div>
+      <div class="copy-block"><pre>"type": "url", "url": "https://mcp.vercel.com"</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONFIG ══ -->
+<div class="page" id="pg-config">
+  <div class="ph">
+    <div class="pt" style="color:var(--purple)">config</div>
+    <div class="ps">Live snapshots embedded at install time. Run <code>bash install.sh</code> to refresh.</div>
+  </div>
+  <div class="config-grid">
+    <div class="config-col">
+      <div class="config-col-header">
+        <span class="config-col-name">CLAUDE.md</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="viewer-btn" id="raw-toggle-btn" onclick="toggleMDRaw()">Raw</button>
+          <button class="viewer-btn" onclick="copyMD()">Copy</button>
+          <span class="viewer-confirm" id="mv-confirm"></span>
+        </div>
+      </div>
+      <div class="mv-container" id="md-viewer"></div>
+    </div>
+    <div class="config-col">
+      <div class="config-col-header">
+        <span class="config-col-name">settings.json</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="viewer-btn" id="json-raw-toggle-btn" onclick="toggleJSONRaw()">Raw</button>
+          <button class="viewer-btn" onclick="jtExpandAll()">Expand all</button>
+          <button class="viewer-btn" onclick="jtCollapseAll()">Collapse all</button>
+          <button class="viewer-btn" onclick="copyAllJSON()">Copy</button>
+          <span class="viewer-confirm" id="jv-confirm"></span>
+        </div>
+      </div>
+      <div class="jt-root" id="json-viewer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ README ══ -->
+<div class="page" id="pg-readme">
+  <div class="rm">
+    <div class="pt" style="color:var(--green);margin-bottom:6px">claude-local-starter</div>
+    <p>Portable Claude Code setup. Clone and run once — installs skills, plugins, MCP servers, shell functions, and CLAUDE.md on any machine.</p>
+
+    <div class="rm-grid">
+      <div class="rm-col">
+        <h2>Quick start</h2>
+        <pre>git clone https://github.com/indranildchandra/claude-local-starter
+bash claude-local-starter/install.sh</pre>
+
+        <h2>Installer modes</h2>
+        <pre>bash install.sh                  # safe update (default)
+bash install.sh --clean-install  # full overwrite (backs up first)
+bash install.sh --dry-run        # preview, no changes written</pre>
+
+        <h2>Measure token costs</h2>
+        <p>Use <code>token-audit.sh</code> to measure the exact token footprint of any skill or plugin before committing to it.</p>
+        <h3>1. Save state &amp; enable everything</h3>
+        <pre>bash token-audit.sh --save</pre>
+        <h3>2. Reload inside Claude Code</h3>
+        <pre>/reload-plugins</pre>
+        <h3>3. Check token footprint</h3>
+        <pre>/context</pre>
+        <p>Each loaded skill and plugin appears with its token count. Note the number for any item you are evaluating.</p>
+        <h3>4. Restore your original state</h3>
+        <pre>bash token-audit.sh --restore</pre>
+        <h3>5. Apply restore in Claude Code</h3>
+        <pre>/reload-plugins</pre>
+        <p>Everything returns to your pre-audit state. Only keep a skill or plugin enabled if the token cost is worth the benefit.</p>
+      </div>
+
+      <div class="rm-col">
+        <h2>Shell functions</h2>
+        <pre>list-skills / enable-skill &lt;n&gt; / disable-skill &lt;n&gt;
+list-plugins / enable-plugin &lt;n&gt; / disable-plugin &lt;n&gt;
+list-mcps   / enable-mcp &lt;n&gt;   / disable-mcp &lt;n&gt;
+list-commands
+cw    # launch with ~/.claude-work context loaded</pre>
+
+        <h2>Update</h2>
+        <pre>cd claude-local-starter && git pull && bash install.sh</pre>
+      </div>
+
+      <div class="rm-col">
+        <h2>Verify installation</h2>
+        <h3>Plugins</h3>
+        <pre>cat ~/.claude/settings.json | python3 -m json.tool | grep -A1 "enabledPlugins"</pre>
+        <h3>Skills</h3>
+        <pre>list-skills</pre>
+        <h3>MCP servers</h3>
+        <pre>list-mcps</pre>
+
+        <h2>Extending</h2>
+        <ul>
+          <li>Add skills → <code>skills/your-skill/SKILL.md</code> in repo, run <code>bash install.sh</code></li>
+          <li>Add commands → <code>commands/your-cmd.md</code> in repo, run <code>bash install.sh</code></li>
+          <li>Edit global config → <code>claude-md-master/CLAUDE.md</code>, run <code>bash install.sh</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── EMBEDDED DATA — replaced by install.sh ──
+var SETTINGS_JSON_DATA = "__SETTINGS_JSON_PLACEHOLDER__";
+var CLAUDE_MD_DATA = "__CLAUDE_MD_PLACEHOLDER__";
+
+// ── TAB / COPY ──
+function show(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.getElementById('pg-' + id).classList.add('on');
+  el.classList.add('on');
+}
+function copyBlock(btn) {
+  const text = btn.previousElementSibling.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+// ── SHARED UTILS ──
+function escH(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── JSON TREE VIEWER ──
+let _jtId = 0;
+function jtNode(val, key, depth) {
+  if (depth === undefined) depth = 0;
+  const id = 'jt'+ (_jtId++);
+  const isArr = Array.isArray(val);
+  const isObj = val !== null && typeof val === 'object';
+  const keyHtml = key !== null ? `<span class="jt-key">${escH(JSON.stringify(String(key)))}</span><span class="jt-colon">:</span>` : '';
+  if (isObj || isArr) {
+    const entries = isArr ? val.map((v,i)=>[i,v]) : Object.entries(val);
+    const badge = isArr ? 'jt-arr-badge' : 'jt-obj-badge';
+    const label = isArr ? 'array' : 'object';
+    const count = entries.length;
+    const kids = entries.map(([k,v]) => jtNode(v, k, depth + 1)).join('');
+    const openCls = depth === 0 ? ' open' : '';
+    return `<div class="jt-wrap${openCls}" id="${id}">
+      <div class="jt-row" onclick="jtToggle('${id}')">
+        <span class="jt-arrow">▶</span>
+        ${keyHtml}
+        <span class="jt-badge ${badge}">${label}</span>
+        <span class="jt-count">${count} ${isArr?'item':'key'}${count!==1?'s':''}</span>
+      </div>
+      <div class="jt-children">${kids}</div>
+    </div>`;
+  }
+  let valHtml;
+  if (val === null)            valHtml = `<span class="jt-null">null</span>`;
+  else if (typeof val==='boolean') valHtml = `<span class="jt-bool">${val}</span>`;
+  else if (typeof val==='number')  valHtml = `<span class="jt-num">${val}</span>`;
+  else                             valHtml = `<span class="jt-str">${escH(JSON.stringify(val))}</span>`;
+  return `<div class="jt-leaf">${keyHtml}${valHtml}</div>`;
+}
+function jtToggle(id) { document.getElementById(id).classList.toggle('open'); }
+function jtExpandAll()   { document.querySelectorAll('#json-viewer .jt-wrap').forEach(n=>n.classList.add('open')); }
+function jtCollapseAll() { document.querySelectorAll('#json-viewer .jt-wrap').forEach(n=>n.classList.remove('open')); }
+function initSettingsViewer() {
+  const el = document.getElementById('json-viewer');
+  if (!el) return;
+  let data;
+  try { data = typeof SETTINGS_JSON_DATA === 'object' ? SETTINGS_JSON_DATA : JSON.parse(SETTINGS_JSON_DATA); }
+  catch(e) { el.innerHTML = '<div class="viewer-not-injected">settings.json not embedded — run <code>bash install.sh</code> to inject.</div>'; return; }
+  if (typeof data === 'string' && data.includes('PLACEHOLDER')) {
+    el.innerHTML = '<div class="viewer-not-injected">settings.json not embedded — run <code>bash install.sh</code> to inject.</div>'; return;
+  }
+  _jtId = 0;
+  el.innerHTML = jtNode(data, null);
+}
+function copyAllJSON() {
+  let text;
+  try { text = JSON.stringify(typeof SETTINGS_JSON_DATA === 'object' ? SETTINGS_JSON_DATA : JSON.parse(SETTINGS_JSON_DATA), null, 2); }
+  catch(e) { text = String(SETTINGS_JSON_DATA); }
+  navigator.clipboard.writeText(text).then(() => flash('jv-confirm','✓ copied'));
+}
+
+// ── MARKDOWN VIEWER ──
+let _mdRaw = false;
+function inlineRender(s) {
+  s = escH(s);
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:var(--blue)">$1</a>');
+  return s;
+}
+function renderMDContent(text) {
+  const lines = text.split('\n');
+  let html = '', inCode = false, codeBuf = '', inTable = false, tableRows = [];
+  function flushTable() {
+    if (!tableRows.length) return;
+    const rows = tableRows.splice(0);
+    inTable = false;
+    if (rows.length < 2) { html += rows.map(r => `<p>${escH(r)}</p>`).join(''); return; }
+    const heads = rows[0].split('|').map(c=>c.trim()).filter(Boolean);
+    html += `<table><thead><tr>${heads.map(h=>`<th>${escH(h)}</th>`).join('')}</tr></thead><tbody>`;
+    rows.slice(2).forEach(row => {
+      const cells = row.split('|').map(c=>c.trim()).filter(Boolean);
+      html += `<tr>${cells.map(c=>`<td>${inlineRender(c)}</td>`).join('')}</tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (/^```/.test(line)) {
+      if (!inCode) { inCode=true; codeBuf=''; i++; continue; }
+      html += `<pre><code>${escH(codeBuf)}</code></pre>`; inCode=false; i++; continue;
+    }
+    if (inCode) { codeBuf += (codeBuf?'\n':'')+line; i++; continue; }
+    if (/^\|/.test(line)) { inTable=true; tableRows.push(line); i++; continue; }
+    if (inTable) flushTable();
+    if (/^---+$/.test(line.trim())) { html+='<hr>'; i++; continue; }
+    if (/^### /.test(line)) { html+=`<h3>${escH(line.slice(4))}</h3>`; i++; continue; }
+    if (/^## /.test(line))  { html+=`<h2>${escH(line.slice(3))}</h2>`; i++; continue; }
+    if (/^# /.test(line))   { html+=`<h1>${escH(line.slice(2))}</h1>`; i++; continue; }
+    if (/^[-*] /.test(line)) {
+      html+='<ul>';
+      while (i<lines.length && /^[-*] /.test(lines[i])) { html+=`<li>${inlineRender(lines[i].slice(2))}</li>`; i++; }
+      html+='</ul>'; continue;
+    }
+    if (/^\d+\. /.test(line)) {
+      html+='<ol>';
+      while (i<lines.length && /^\d+\. /.test(lines[i])) { html+=`<li>${inlineRender(lines[i].replace(/^\d+\. /,''))}</li>`; i++; }
+      html+='</ol>'; continue;
+    }
+    if (/^> /.test(line)) { html+=`<blockquote>${inlineRender(line.slice(2))}</blockquote>`; i++; continue; }
+    if (line.trim()==='') { i++; continue; }
+    let para='';
+    while (i<lines.length && lines[i].trim()!=='' && !/^[#>`\-\*\|]/.test(lines[i]) && !/^\d+\./.test(lines[i]) && !/^```/.test(lines[i])) { para+=(para?' ':'')+lines[i]; i++; }
+    if (para) html+=`<p>${inlineRender(para)}</p>`;
+  }
+  if (inTable) flushTable();
+  return html;
+}
+function renderMDView() {
+  const el = document.getElementById('md-viewer');
+  if (!el) return;
+  const md = CLAUDE_MD_DATA;
+  if (!md || (typeof md==='string' && md.includes('PLACEHOLDER'))) {
+    el.innerHTML = '<div class="viewer-not-injected">CLAUDE.md not embedded — run <code>bash install.sh</code> to inject.</div>'; return;
+  }
+  if (_mdRaw) {
+    el.innerHTML = `<pre class="mv-raw-text">${escH(md)}</pre>`; return;
+  }
+  // split on ## headings → collapsible sections
+  const sections = [];
+  let cur = { title:null, lines:[] };
+  md.split('\n').forEach(line => {
+    if (/^## /.test(line)) { sections.push(cur); cur={title:line.slice(3), lines:[]}; }
+    else cur.lines.push(line);
+  });
+  sections.push(cur);
+  let html = '';
+  sections.forEach((sec, idx) => {
+    if (sec.title === null) {
+      const pre = renderMDContent(sec.lines.join('\n'));
+      if (pre.trim()) html += `<div class="mv-rendered" style="margin-bottom:10px">${pre}</div>`;
+    } else {
+      const open = sec.title === 'Workflow Orchestration';
+      html += `<div class="mv-section${open?' open':''}">
+        <div class="mv-section-header" onclick="this.parentElement.classList.toggle('open')">
+          <span class="mv-section-title"><span class="mv-sec-prefix">##</span> ${escH(sec.title)}</span>
+          <span class="mv-section-arrow">▶</span>
+        </div>
+        <div class="mv-section-body mv-rendered">${renderMDContent(sec.lines.join('\n'))}</div>
+      </div>`;
+    }
+  });
+  el.innerHTML = html;
+}
+function toggleMDRaw() {
+  _mdRaw = !_mdRaw;
+  const btn = document.getElementById('raw-toggle-btn');
+  btn.classList.toggle('active', _mdRaw);
+  btn.textContent = _mdRaw ? 'Rendered' : 'Raw';
+  renderMDView();
+}
+let _jsonRaw = false;
+function toggleJSONRaw() {
+  _jsonRaw = !_jsonRaw;
+  const btn = document.getElementById('json-raw-toggle-btn');
+  btn.classList.toggle('active', _jsonRaw);
+  btn.textContent = _jsonRaw ? 'Tree' : 'Raw';
+  if (_jsonRaw) {
+    let text;
+    try { text = JSON.stringify(typeof SETTINGS_JSON_DATA === 'object' ? SETTINGS_JSON_DATA : JSON.parse(SETTINGS_JSON_DATA), null, 2); }
+    catch(e) { text = String(SETTINGS_JSON_DATA); }
+    document.getElementById('json-viewer').innerHTML = `<pre class="mv-raw-text">${escH(text)}</pre>`;
+  } else {
+    _jtId = 0;
+    document.getElementById('json-viewer').innerHTML = '';
+    initSettingsViewer();
+  }
+}
+function copyMD() {
+  navigator.clipboard.writeText(CLAUDE_MD_DATA).then(() => flash('mv-confirm','✓ copied'));
+}
+function flash(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.opacity='1';
+  setTimeout(() => el.style.opacity='0', 1500);
+}
+
+// ── INIT ──
+initSettingsViewer();
+renderMDView();
+</script>
+</body>
+</html>

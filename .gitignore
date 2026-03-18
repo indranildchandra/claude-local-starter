@@ -1,0 +1,35 @@
+# claude-local-starter -- allowlist gitignore
+# Ignore everything by default, then explicitly allow tracked files.
+
+*
+
+# ── Tracked repo files ─────────────────────────────────────────
+!.gitignore
+!README.md
+!CLAUDE.md
+!install.sh
+!token-audit.sh
+!status.py
+!generate-status.sh
+!settings.json
+
+# Dashboard
+!claude-local-starter.html
+
+# Screenshots
+!screenshots/
+!screenshots/**
+
+# Custom commands (slash commands for Claude Code)
+!commands/
+!commands/**
+
+# Custom skills (SKILL.md files for Claude Code)
+!skills/
+!skills/**
+
+# ── Never track ────────────────────────────────────────────────
+# Generated at install time
+plugin_commands.sh
+# Token audit snapshot — machine-specific, never commit
+token-audit-state.json
