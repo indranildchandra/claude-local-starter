@@ -584,8 +584,8 @@ if ! $DRY_RUN; then
 /plugin install claude-code-setup@claude-plugins-official
 
 # Community
-/plugin install context-mode@claude-context-mode
-/plugin install claude-mem
+/plugin install context-mode@context-mode
+/plugin install claude-mem@thedotmack
 /plugin install obsidian@obsidian-skills
 /plugin install ui-ux-pro-max@ui-ux-pro-max-skill
 

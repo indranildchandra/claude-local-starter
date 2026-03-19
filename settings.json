@@ -14,10 +14,10 @@
     "feature-dev@anthropics/claude-code": false,
     "pr-review-toolkit@anthropics/claude-code": false,
     "claude-md-management@claude-plugins-official": false,
-    "claude-mem@claude-plugins-official": false,
+    "claude-mem@thedotmack": false,
     "obsidian@obsidian-skills": false,
     "ui-ux-pro-max@ui-ux-pro-max-skill": false,
-    "context-mode@claude-context-mode": false
+    "context-mode@context-mode": false
   },
   "env": {
     "ENABLE_LSP_TOOL": "1",
