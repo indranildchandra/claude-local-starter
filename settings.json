@@ -1,10 +1,10 @@
 {
   "enabledPlugins": {
-    "typescript-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": false,
     "pyright-lsp@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
-    "jdtls-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": false,
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "jdtls-lsp@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": false,
     "superpowers@claude-plugins-official": false,
     "claude-code-setup@claude-plugins-official": false,
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"## $(date '+%Y-%m-%d %H:%M:%S') \u2014 [Auto-Compact Triggered]\\n**Type:** pre-compact\\n**Note:** Auto-compaction fired. Run /log-context in next session to restore full detail.\" >> tasks/tracker.md 2>/dev/null || true"
+            "command": "e=$(printf '\\n---\\n## %s — [Auto-Compact Snapshot]\\n**Session:** %s\\n**CWD:** %s\\n**Note:** Run /log-context for full detail if not already done.\\n' \"$(date '+%Y-%m-%d %H:%M:%S')\" \"${CLAUDE_SESSION_ID:-unknown}\" \"${PWD}\"); if [ -f tasks/tracker.md ]; then tmp=$(mktemp) && { head -3 tasks/tracker.md; printf '%s\\n' \"$e\"; tail -n +4 tasks/tracker.md; } > \"$tmp\" && mv \"$tmp\" tasks/tracker.md; else printf '%s\\n' \"$e\" > tasks/tracker.md; fi 2>/dev/null || true"
           }
         ]
       }

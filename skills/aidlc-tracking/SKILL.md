@@ -28,8 +28,8 @@ disable-model-invocation: true
 
 1. **Never invent formats** — always load `formats.md` from this skill before creating or appending to a tracking file
 2. **All files are per-repo** — never write tracking files to a global location
-3. **Create on first use** — if a tracking file doesn't exist, create it with the header from `formats.md` before appending
-4. **Append-only files are never edited** — tracker, plan, changelog, lessons are append-only; only todo is rewritten
+3. **Create on first use** — if a tracking file doesn't exist, create it with the header from `formats.md`, then write the first entry below the header
+4. **Prepend, never append** — for all append-only files (tracker, plan, changelog, lessons, design-review): insert each new entry immediately after the file header so the newest entry is always at the top. Never write to the end of the file. Only `todo.md` is rewritten wholesale.
 5. **Timestamps always use** `YYYY-MM-DD HH:MM:SS` format
 
 ## Pre-compact protocol

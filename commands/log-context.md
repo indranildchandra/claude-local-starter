@@ -20,8 +20,11 @@ Reflect on the current conversation and identify:
 
 ## Step 3 — Write to tasks/tracker.md
 
-Append the pre-compact snapshot entry to `tasks/tracker.md`.
-If `tasks/tracker.md` does not exist, create it with the header from aidlc-tracking formats.md first.
+Prepend the pre-compact snapshot entry to `tasks/tracker.md` so the newest entry is at the top.
+
+If `tasks/tracker.md` does not exist: create it with the header from aidlc-tracking formats.md, then write the entry below the header.
+
+If `tasks/tracker.md` already exists: insert the new entry immediately after the file header (first 3 lines), pushing all prior entries down. Do NOT append to the end of the file.
 
 ## Step 4 — Confirm
 

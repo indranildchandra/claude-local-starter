@@ -39,7 +39,7 @@ bash install.sh --dry-run        # preview all actions, no changes written
 7. Install skills via `npx skills add` (patched with `disable-model-invocation: true`)
 8. Clone/update `blader/humanizer` skill
 9. Install `uipro-cli` globally
-10. Install LSP binaries (typescript-language-server, pyright, gopls, rust-analyzer, jdtls)
+10. Install LSP binaries (typescript-language-server, pyright, gopls, rust-analyzer, jdtls) — pyright-lsp enabled by default; others installed but disabled
 11. Install `@playwright/cli`, run `playwright-cli install --skills`, install Chromium
 12. Register MCP servers via `npx gitnexus setup`
 13. Write `~/.claude/plugin_commands.sh` (manual paste into Claude Code)
@@ -98,6 +98,7 @@ Place `.md` files under `commands/` — they sync to `~/.claude/commands/` and b
 
 ### 2. Subagent Strategy
 - **Always parallelise** -- spawn subagents simultaneously wherever tasks are independent
+- **Batch independent tool calls** -- never make sequential tool calls when results are not interdependent; fire all independent reads, searches, and fetches in a single message
 - Use subagents liberally to keep main context window clean
 - Offload research, exploration, and parallel analysis to subagents
 - For complex problems, throw more compute at it via subagents
@@ -184,6 +185,17 @@ Before running or suggesting `/compact`:
 2. Then proceed with `/compact`
 
 When context auto-compaction is imminent (≥70%), always run `/log-context` first.
+
+## Compaction Instructions
+
+When compacting (manual or auto), **preserve**:
+1. The active task name and exact current step
+2. Every file path modified or created this session
+3. Key architectural decisions and the reasoning behind them
+4. The precise next action to take
+5. Any blocking issues or open questions
+
+**Discard:** exploratory reads that led nowhere, failed attempts, verbose tool output no longer needed, and repetitive explanations.
 
 ## Core Principles
 

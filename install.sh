@@ -777,7 +777,7 @@ list-skills() {
 }
 
 # ── Plugin toggles (via settings.json enabledPlugins) ────────────────
-# LSP plugins stay true (passive, no token cost). All others default false.
+# pyright-lsp stays true by default; other LSPs default false (enable per-project with enable-plugin).
 # Restart Claude Code or /reload-plugins after toggling.
 
 _find_plugin_key() {
