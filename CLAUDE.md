@@ -39,7 +39,7 @@ bash install.sh --dry-run        # preview all actions, no changes written
 7. Install skills via `npx skills add` (patched with `disable-model-invocation: true`)
 8. Clone/update `blader/humanizer` skill
 9. Install `uipro-cli` globally
-10. Install LSP binaries (typescript-language-server, pyright, gopls, rust-analyzer, jdtls) — pyright-lsp enabled by default; others installed but disabled
+10. Install LSP binaries (typescript-language-server, pyright, gopls, rust-analyzer, jdtls) — pyright-lsp and typescript-lsp enabled by default; others installed but disabled
 11. Install `@playwright/cli`, run `playwright-cli install --skills`, install Chromium
 12. Register MCP servers via `npx gitnexus setup`
 13. Write `~/.claude/plugin_commands.sh` (manual paste into Claude Code)
@@ -78,9 +78,26 @@ All disabled by default except `context7`. Use `enable-mcp <name>` to activate.
 
 Place skill directories under `skills/` — each needs a `SKILL.md`. The installer syncs them to `~/.claude/skills/` without overwriting existing customisations.
 
+### Bundled Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `aidlc-tracking` | Canonical formats for all project tracking files |
+| `review-council` | Multi-persona architecture review council |
+| `ppt-creator` | Personal presentation builder — research, narrative, design system, QA pipeline |
+
 ### Adding Custom Commands
 
 Place `.md` files under `commands/` — they sync to `~/.claude/commands/` and become available as `/command-name` inside Claude Code.
+
+### Bundled Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/init-repo` | Bootstrap gitnexus + CLAUDE.md + AIDLC tracking files for a new repo |
+| `/design-review` | Trigger the `review-council` skill for a full architectural review |
+| `/log-context` | Write a pre-compact session snapshot to `tasks/tracker.md` |
+| `/create-ppt` | Triggers the `ppt-creator` skill — builds a `.pptx` with full research, narrative arc, personal design system, and Visual QA pipeline |
 
 ---
 

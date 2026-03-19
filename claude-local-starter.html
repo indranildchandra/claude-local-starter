@@ -410,7 +410,7 @@
 <div class="page on" id="pg-plugins">
   <div class="ph">
     <div class="pt" style="color:var(--orange)">plugins</div>
-    <div class="ps">Install inside an active Claude Code session. Paste the commands shown on each card. pyright-lsp (Python) is enabled by default. All other LSPs and non-LSP plugins are disabled by default — use <code>enable-plugin &lt;name&gt;</code> + restart to activate.</div>
+    <div class="ps">Install inside an active Claude Code session. Paste the commands shown on each card. pyright-lsp (Python) and typescript-lsp are enabled by default. All other LSPs and non-LSP plugins are disabled by default — use <code>enable-plugin &lt;name&gt;</code> + restart to activate.</div>
   </div>
 
   <div class="section">
@@ -490,7 +490,7 @@
   </div>
 
   <div class="section">
-    <div class="sh">LSP — pyright active by default, others disabled</div>
+    <div class="sh">LSP — pyright + typescript active by default, others disabled</div>
     <div class="items">
       <div class="item lsp">
         <div class="ihead"><span class="iname"><a href="https://github.com/anthropics/claude-plugins-official/tree/main/plugins/typescript-lsp" target="_blank" rel="noopener">typescript-lsp</a></span><span class="tok tok-tool">tools only</span><div class="itags"><span class="tag lsp">LSP</span><span class="tag official">official</span></div></div>
@@ -593,6 +593,11 @@ cd your-project && npx shadcn@latest init</pre><button class="copy-btn" onclick=
   <div class="section">
     <div class="sh">Document Tools</div>
     <div class="items">
+      <div class="item skill">
+        <div class="ihead"><span class="iname">ppt-creator</span><span class="tok tok-ctx">~80 tokens</span><div class="itags"><span class="tag bundled">custom</span></div></div>
+        <div class="idesc">Research → narrative arc → personal design system → Visual QA before output. Generates a production <code>.pptx</code> via pptxgenjs with consistent branding across all decks.</div>
+        <div class="icmd">invoked by /create-ppt</div>
+      </div>
       <div class="item skill">
         <div class="ihead"><span class="iname">docx / pdf / pptx / xlsx</span><span class="tok tok-ctx">~50 tokens each</span><div class="itags"><span class="tag bundled">bundled</span></div></div>
         <div class="idesc">Document creation and manipulation. Auto-activates for any Office file request.</div>
@@ -877,8 +882,9 @@ function renderMDContent(text) {
     if (/^> /.test(line)) { html+=`<blockquote>${inlineRender(line.slice(2))}</blockquote>`; i++; continue; }
     if (line.trim()==='') { i++; continue; }
     let para='';
-    while (i<lines.length && lines[i].trim()!=='' && !/^[#>`\-\*\|]/.test(lines[i]) && !/^\d+\./.test(lines[i]) && !/^```/.test(lines[i])) { para+=(para?' ':'')+lines[i]; i++; }
+    while (i<lines.length && lines[i].trim()!=='' && !/^[#>`|]/.test(lines[i]) && !/^[-*] /.test(lines[i]) && !/^\d+\./.test(lines[i]) && !/^```/.test(lines[i])) { para+=(para?' ':'')+lines[i]; i++; }
     if (para) html+=`<p>${inlineRender(para)}</p>`;
+    else i++;
   }
   if (inTable) flushTable();
   return html;

@@ -22,9 +22,9 @@ Think of it as the all-stars setup — not everything available, just the things
 |-----------|---------|
 | `~/.claude/CLAUDE.md` | Global Claude Code behaviour (from `claude-md-master/CLAUDE.md`) |
 | `~/.claude/settings.json` | Plugins, env vars, MCP servers, hooks (deep-merged) |
-| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, aidlc-tracking, review-council |
-| `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context` |
-| LSP binaries | typescript-language-server, pyright, gopls, rust-analyzer, jdtls |
+| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, aidlc-tracking, review-council, ppt-creator |
+| `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context`, `/create-ppt` |
+| LSP binaries | typescript-language-server (enabled), pyright (enabled), gopls, rust-analyzer, jdtls |
 | Browser automation | `@playwright/cli` with skills + Chromium |
 | MCP servers | context7 (enabled by default), gitnexus, context-mode, claude-mem, filesystem, supabase, vercel |
 | Shell functions | see below |
@@ -159,6 +159,7 @@ Synced to `~/.claude/skills/` on install.
 |-------|--------|
 | `aidlc-tracking` | bundled (this repo) |
 | `review-council` | bundled (this repo) |
+| `ppt-creator` | bundled (this repo) |
 | `humanizer` | [blader/humanizer](https://github.com/blader/humanizer) |
 | `playwright-cli` | [microsoft/playwright-cli](https://github.com/microsoft/playwright-cli) |
 | `ui-ux-pro-max` | [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) |
@@ -205,6 +206,7 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 |-------|-------------|
 | `aidlc-tracking` | Canonical formats for all project tracking files — `plan.md`, `todo.md`, `tracker.md`, `lessons.md`, `changelog.md`, `design-review.md`. Exists so Claude never invents its own structure for these files and every project looks the same. |
 | `review-council` | Spins up a multi-persona review council for architecture and design decisions. 20 expert personas, parallel subagent analysis, structured debate, converges on a verdict with your input. Heavy but useful for decisions that actually matter. |
+| `ppt-creator` | Full presentation pipeline from brief to `.pptx`. Research → narrative → design system enforcement → Visual QA before output. Produces conference-ready decks in a consistent personal design system. Triggered via `/create-ppt`. |
 
 **Slash commands**
 
@@ -213,6 +215,7 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 | `/init-repo` | Bootstraps a project from scratch — runs gitnexus analysis, writes a `CLAUDE.md` tailored to the codebase, and scaffolds all AIDLC tracking files in one shot. Run once per new repo. |
 | `/design-review` | Triggers the `review-council` skill for a full architectural review. Pass a scope (file, module, or decision) or leave blank to review the whole repo. |
 | `/log-context` | Writes a detailed session snapshot to `tasks/tracker.md` before compaction. Preserves enough context that a cold-start in the next session doesn't lose the thread. |
+| `/create-ppt` | Triggers the `ppt-creator` skill. Walks through RESEARCH → ALIGN → STRUCTURE → GENERATE → REVIEW with checkpoints at each stage. Produces a named `.pptx` in the personal design system with full Visual QA before delivery. |
 
 ## Contributing
 
