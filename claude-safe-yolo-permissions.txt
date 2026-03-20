@@ -1,0 +1,195 @@
+# Claude Safe-Yolo Mode — Allowed Tools
+# ─────────────────────────────────────────────────────────────────────────────
+# One entry per line. Blank lines and lines starting with # are ignored.
+# This file is the single source of truth for what enable-safe-yolo manages.
+# Synced to ~/.claude/claude-safe-yolo-permissions.txt by install.sh
+#
+# IDEMPOTENT:
+#   enable-safe-yolo  — only ADDS entries from this file not already present.
+#   disable-safe-yolo — only REMOVES entries that are listed in this file.
+#   Manually added permissions in .claude/settings.json are NEVER touched.
+#
+# FORMAT:
+#   Tool(*)          — auto-approve all uses of a Claude Code built-in tool
+#   Bash(command *)  — auto-approve Bash commands starting with this prefix
+#   !Bash(command *) — hard-BLOCK this Bash prefix (leading ! = deny rule);
+#                      Claude cannot run these even if the user approves them
+#
+# SCOPE:
+#   enable-safe-yolo writes to <repo>/.claude/settings.json.
+#   Claude Code reads that file only when launched inside that repo directory.
+#   These permissions have NO effect outside that repo session.
+#
+# USAGE:
+#   enable-safe-yolo                    # targets current working directory
+#   enable-safe-yolo --dir=PATH         # targets a specific repo
+#   enable-safe-yolo --dry-run          # preview only, no changes
+#   disable-safe-yolo                   # removes only these entries from repo
+#   disable-safe-yolo --dir=PATH        # targets a specific repo
+#   /enable-safe-yolo                   # from inside a Claude Code session
+#   /disable-safe-yolo                  # from inside a Claude Code session
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Claude Code native file tools ────────────────────────────────────────────
+# Claude Code's own file tools are safer than raw Bash for file operations:
+# they produce clean diffs, respect project context, and are auditable.
+Read(*)
+Write(*)
+Edit(*)
+MultiEdit(*)
+Glob(*)
+Grep(*)
+LS(*)
+
+# ── Web ───────────────────────────────────────────────────────────────────────
+WebFetch(*)
+WebSearch(*)
+
+# ── Jupyter notebooks ─────────────────────────────────────────────────────────
+# NotebookRead / NotebookEdit are Claude Code's structured tools for .ipynb files.
+# They work like Read/Edit but understand notebook cell structure instead of raw JSON.
+NotebookRead(*)
+NotebookEdit(*)
+
+# ── Task tracking (Claude Code internal) ─────────────────────────────────────
+# TodoRead / TodoWrite: Claude's own session todo-list tool — used to maintain
+# the "- [ ] step" checklists you see when Claude works through a plan.
+# Without these, Claude prompts for approval every time it updates its task list.
+TodoRead(*)
+TodoWrite(*)
+
+# ── Agents & subagents ────────────────────────────────────────────────────────
+# Task: spawns background subagent tasks (used by subagent-driven-development).
+Task(*)
+
+# ── LSP (language intelligence) ───────────────────────────────────────────────
+# Claude Code's LSP tool — hover types, diagnostics, go-to-definition etc.
+# The Bash entries below cover invoking the LSP binaries directly from shell.
+LSP(*)
+
+# ── MCP: context-mode (sandbox execution — used every session) ────────────────
+# context-mode runs commands/analysis inside a sandbox and returns summaries,
+# keeping large outputs out of the main context window.
+mcp__plugin_context-mode_context-mode__ctx_execute(*)
+mcp__plugin_context-mode_context-mode__ctx_execute_file(*)
+mcp__plugin_context-mode_context-mode__ctx_index(*)
+mcp__plugin_context-mode_context-mode__ctx_search(*)
+mcp__plugin_context-mode_context-mode__ctx_fetch_and_index(*)
+mcp__plugin_context-mode_context-mode__ctx_batch_execute(*)
+mcp__plugin_context-mode_context-mode__ctx_stats(*)
+
+# ── MCP: Context7 (live docs fetching) ────────────────────────────────────────
+# Fetches up-to-date library documentation on demand.
+mcp__claude_ai_Context7__resolve-library-id(*)
+mcp__claude_ai_Context7__query-docs(*)
+
+# ── Bash: package managers ────────────────────────────────────────────────────
+Bash(npm *)
+Bash(npx *)
+Bash(node *)
+Bash(bun *)
+Bash(pip *)
+Bash(pip3 *)
+Bash(python3 *)
+Bash(python *)
+Bash(brew *)
+Bash(apt *)
+Bash(apt-get *)
+
+# ── Bash: file operations ─────────────────────────────────────────────────────
+# rmdir is safe: it only removes EMPTY directories and fails on anything else.
+# rm is intentionally absent — Claude will prompt and you approve per-use.
+Bash(cp *)
+Bash(mv *)
+Bash(mkdir *)
+Bash(rmdir *)
+Bash(ls *)
+Bash(cat *)
+Bash(echo *)
+Bash(printf *)
+Bash(find *)
+Bash(stat *)
+Bash(wc *)
+Bash(tr *)
+Bash(sed *)
+Bash(awk *)
+Bash(grep *)
+Bash(head *)
+Bash(tail *)
+Bash(sort *)
+Bash(uniq *)
+Bash(cut *)
+Bash(tee *)
+Bash(diff *)
+Bash(patch *)
+
+# ── Bash: archive / transfer ──────────────────────────────────────────────────
+Bash(tar *)
+Bash(zip *)
+Bash(unzip *)
+Bash(curl *)
+Bash(wget *)
+
+# ── Bash: shell / environment ─────────────────────────────────────────────────
+Bash(export *)
+Bash(source *)
+Bash(chmod *)
+Bash(date *)
+Bash(which *)
+Bash(command *)
+Bash(type *)
+Bash(test *)
+Bash([ *)
+
+# ── Bash: project tooling ─────────────────────────────────────────────────────
+Bash(playwright-cli *)
+Bash(playwright *)
+Bash(gitnexus *)
+Bash(skills *)
+Bash(uipro *)
+Bash(jq *)
+Bash(open *)
+
+# ── Bash: language server binaries ───────────────────────────────────────────
+# These cover invoking LSP binaries directly (install checks, version queries).
+# LSP(*) above covers Claude Code's integrated LSP protocol calls.
+Bash(typescript-language-server *)
+Bash(pyright *)
+Bash(gopls *)
+Bash(rust-analyzer *)
+Bash(rustup *)
+Bash(jdtls *)
+
+# ── Bash: git — read-only and safe local operations ──────────────────────────
+# Write operations (push, commit, clone, reset --hard, rebase) are excluded.
+# Claude will prompt for those and you approve per-use.
+Bash(git status *)
+Bash(git status)
+Bash(git log *)
+Bash(git diff *)
+Bash(git show *)
+Bash(git branch *)
+Bash(git stash list*)
+Bash(git remote -v*)
+Bash(git fetch *)
+Bash(git blame *)
+Bash(git grep *)
+Bash(git ls-files *)
+Bash(git rev-parse *)
+Bash(git describe *)
+Bash(git tag *)
+Bash(git shortlog *)
+Bash(git reflog *)
+Bash(git cherry *)
+Bash(git cherry-pick --no-commit *)
+Bash(git stash show *)
+
+# ── Deny — hard-blocked regardless of any allow rule ─────────────────────────
+# Only git write operations with external/irreversible consequences are listed.
+# Everything else not in the allow list above will simply prompt for approval.
+!Bash(git push *)
+!Bash(git push)
+!Bash(git commit *)
+!Bash(git clone *)
+!Bash(git reset --hard*)
+!Bash(git rebase *)

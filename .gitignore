@@ -13,6 +13,7 @@ token-audit-state.json
 
 # ── Large binary / media files ──────────────────────────────────
 *.mp4
+!screenshots/html_preview.mp4
 *.mov
 *.avi
 

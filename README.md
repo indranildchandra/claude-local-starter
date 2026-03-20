@@ -69,15 +69,7 @@ open ~/.claude/claude-local-starter.html
 
 Always open this installed copy — not the `claude-local-starter.html` file in the repo itself. The repo file is a template; the one in `~/.claude/` is the one with your actual `settings.json` and `CLAUDE.md` baked in.
 
-| Plugins | Skills |
-|---------|--------|
-| ![Plugins tab](screenshots/plugins.png) | ![Skills tab](screenshots/skills.png) |
-
-| MCP Servers | Config |
-|-------------|--------|
-| ![MCP tab](screenshots/mcps.png) | ![Config tab](screenshots/configs.png) |
-
-![README tab](screenshots/readme.png)
+![HTML-Preview](screenshots/html_preview.mp4)
 
 ## Key files
 

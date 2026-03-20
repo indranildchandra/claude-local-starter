@@ -1,4 +1,10 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(~/.claude/enable-safe-yolo.sh *)",
+      "Bash(~/.claude/disable-safe-yolo.sh *)"
+    ]
+  },
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,
