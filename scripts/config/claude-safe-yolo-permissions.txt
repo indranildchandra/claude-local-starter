@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # One entry per line. Blank lines and lines starting with # are ignored.
 # This file is the single source of truth for what enable-safe-yolo manages.
-# Synced to ~/.claude/claude-safe-yolo-permissions.txt by install.sh
+# Synced to ~/.claude/claude-safe-yolo-permissions.txt by install.sh (from scripts/config/)
 #
 # IDEMPOTENT:
 #   enable-safe-yolo  — only ADDS entries from this file not already present.
@@ -10,10 +10,13 @@
 #   Manually added permissions in .claude/settings.json are NEVER touched.
 #
 # FORMAT:
-#   Tool(*)          — auto-approve all uses of a Claude Code built-in tool
-#   Bash(command *)  — auto-approve Bash commands starting with this prefix
-#   !Bash(command *) — hard-BLOCK this Bash prefix (leading ! = deny rule);
-#                      Claude cannot run these even if the user approves them
+#   Tool(*)           — auto-approve all uses of a Claude Code built-in tool
+#   Bash(command *)   — auto-approve Bash commands starting with "command " (space)
+#   Bash(command:*)   — auto-approve Bash commands starting with "command" (prefix wildcard)
+#   Both forms are included for each command to cover all invocation styles.
+#   !Bash(command *)  — hard-BLOCK this Bash prefix (leading ! = deny rule);
+#                       Claude cannot run these even if the user approves them
+#   @defaultMode=VAL  — set permissions.defaultMode (e.g. acceptEdits)
 #
 # SCOPE:
 #   enable-safe-yolo writes to <repo>/.claude/settings.json.
@@ -29,6 +32,11 @@
 #   /enable-safe-yolo                   # from inside a Claude Code session
 #   /disable-safe-yolo                  # from inside a Claude Code session
 # ─────────────────────────────────────────────────────────────────────────────
+
+# ── Edit mode ────────────────────────────────────────────────────────────────
+# acceptEdits: Claude auto-accepts file edits without prompting per-edit.
+# Remove this line to keep the default "ask" behaviour for file writes.
+@defaultMode=acceptEdits
 
 # ── Claude Code native file tools ────────────────────────────────────────────
 # Claude Code's own file tools are safer than raw Bash for file operations:
@@ -85,80 +93,157 @@ mcp__claude_ai_Context7__query-docs(*)
 
 # ── Bash: package managers ────────────────────────────────────────────────────
 Bash(npm *)
+Bash(npm:*)
 Bash(npx *)
+Bash(npx:*)
 Bash(node *)
+Bash(node:*)
 Bash(bun *)
+Bash(bun:*)
 Bash(pip *)
+Bash(pip:*)
 Bash(pip3 *)
+Bash(pip3:*)
 Bash(python3 *)
+Bash(python3:*)
 Bash(python *)
+Bash(python:*)
 Bash(brew *)
+Bash(brew:*)
 Bash(apt *)
+Bash(apt:*)
 Bash(apt-get *)
+Bash(apt-get:*)
 
 # ── Bash: file operations ─────────────────────────────────────────────────────
 # rmdir is safe: it only removes EMPTY directories and fails on anything else.
 # rm is intentionally absent — Claude will prompt and you approve per-use.
 Bash(cp *)
+Bash(cp:*)
 Bash(mv *)
+Bash(mv:*)
 Bash(mkdir *)
+Bash(mkdir:*)
 Bash(rmdir *)
+Bash(rmdir:*)
 Bash(ls *)
+Bash(ls:*)
 Bash(cat *)
+Bash(cat:*)
 Bash(echo *)
+Bash(echo:*)
 Bash(printf *)
+Bash(printf:*)
 Bash(find *)
+Bash(find:*)
 Bash(stat *)
+Bash(stat:*)
 Bash(wc *)
+Bash(wc:*)
 Bash(tr *)
+Bash(tr:*)
 Bash(sed *)
+Bash(sed:*)
 Bash(awk *)
+Bash(awk:*)
 Bash(grep *)
+Bash(grep:*)
 Bash(head *)
+Bash(head:*)
 Bash(tail *)
+Bash(tail:*)
 Bash(sort *)
+Bash(sort:*)
 Bash(uniq *)
+Bash(uniq:*)
 Bash(cut *)
+Bash(cut:*)
 Bash(tee *)
+Bash(tee:*)
 Bash(diff *)
+Bash(diff:*)
 Bash(patch *)
+Bash(patch:*)
 
 # ── Bash: archive / transfer ──────────────────────────────────────────────────
 Bash(tar *)
+Bash(tar:*)
 Bash(zip *)
+Bash(zip:*)
 Bash(unzip *)
+Bash(unzip:*)
 Bash(curl *)
+Bash(curl:*)
 Bash(wget *)
+Bash(wget:*)
 
 # ── Bash: shell / environment ─────────────────────────────────────────────────
+Bash(cd *)
+Bash(cd:*)
+Bash(bash *)
+Bash(bash:*)
 Bash(export *)
+Bash(export:*)
 Bash(source *)
+Bash(source:*)
 Bash(chmod *)
+Bash(chmod:*)
 Bash(date *)
+Bash(date:*)
 Bash(which *)
+Bash(which:*)
 Bash(command *)
+Bash(command:*)
 Bash(type *)
+Bash(type:*)
 Bash(test *)
+Bash(test:*)
 Bash([ *)
+Bash([:*)
 
 # ── Bash: project tooling ─────────────────────────────────────────────────────
 Bash(playwright-cli *)
+Bash(playwright-cli:*)
 Bash(playwright *)
+Bash(playwright:*)
 Bash(gitnexus *)
+Bash(gitnexus:*)
 Bash(skills *)
+Bash(skills:*)
 Bash(uipro *)
+Bash(uipro:*)
 Bash(jq *)
+Bash(jq:*)
 Bash(open *)
+Bash(open:*)
+Bash(rsync *)
+Bash(rsync:*)
+
+# ── Bash: media / document processing ────────────────────────────────────────
+# soffice (LibreOffice), pdftoppm, convert (ImageMagick) — used in ppt-creator
+# VQA pipeline for rendering slides to images for visual inspection.
+Bash(soffice *)
+Bash(soffice:*)
+Bash(pdftoppm *)
+Bash(pdftoppm:*)
+Bash(convert *)
+Bash(convert:*)
 
 # ── Bash: language server binaries ───────────────────────────────────────────
 # These cover invoking LSP binaries directly (install checks, version queries).
 # LSP(*) above covers Claude Code's integrated LSP protocol calls.
 Bash(typescript-language-server *)
+Bash(typescript-language-server:*)
 Bash(pyright *)
+Bash(pyright:*)
 Bash(gopls *)
+Bash(gopls:*)
 Bash(rust-analyzer *)
+Bash(rust-analyzer:*)
 Bash(rustup *)
+Bash(rustup:*)
 Bash(jdtls *)
+Bash(jdtls:*)
 
 # ── Bash: git — read-only and safe local operations ──────────────────────────
 # Write operations (push, commit, clone, reset --hard, rebase) are excluded.

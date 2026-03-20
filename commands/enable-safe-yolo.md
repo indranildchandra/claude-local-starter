@@ -1,6 +1,6 @@
 Enable safe-yolo permissions for a repository.
 
-Writes a `permissions.allow` + `permissions.deny` block into `<repo>/.claude/settings.json`
+Writes `permissions.allow`, `permissions.deny`, and `permissions.defaultMode` into `<repo>/.claude/settings.json`
 based on `~/.claude/claude-safe-yolo-permissions.txt`.
 Idempotent — only adds entries
 not already present; manually added permissions are never touched.
@@ -22,11 +22,11 @@ Check if the user passed a path or natural language hint in the arguments:
 1. From your environment context, collect all known working directories (primary + additional).
 2. Filter out non-repo paths — exclude anything under `~/.claude`, `~/.claude-work`, `/tmp`, or `/var`.
 3. Count what remains:
-   - **Exactly one** candidate → ask:
-     > "Safe-yolo will be enabled in **<DIR>**. Proceed? (y/n)"
-     Wait for reply before continuing.
+   - **Exactly one** candidate → announce it and proceed directly to Step 2 (no confirmation yet):
+     > "The only non-excluded working directory is **<DIR>**."
    - **Multiple** candidates → list them and ask:
      > "Which directory should I enable safe-yolo in?"
+     Wait for reply before continuing.
    - **Zero** candidates → ask the user to paste the full path.
 
 ## Step 2 — Show dry-run summary and confirm with user

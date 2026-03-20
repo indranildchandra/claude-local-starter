@@ -12,6 +12,7 @@
 #    Tool(*)           → added to permissions.allow
 #    Bash(cmd *)       → added to permissions.allow
 #    !Bash(cmd *)      → added to permissions.deny (leading ! = deny)
+#    @defaultMode=VAL  → sets permissions.defaultMode (e.g. acceptEdits)
 #    # comment         → ignored
 #    blank lines       → ignored
 #
@@ -63,6 +64,7 @@ SETTINGS_FILE="${TARGET_DIR}/.claude/settings.json"
 # ── Parse permissions file into two temp files ────────────────────────────────
 ALLOW_TMP="$(mktemp)"
 DENY_TMP="$(mktemp)"
+DEFAULT_MODE_VAL=""
 
 while IFS= read -r line; do
   # strip leading/trailing whitespace
@@ -71,6 +73,8 @@ while IFS= read -r line; do
   [[ -z "$line" || "$line" == \#* ]] && continue
   if [[ "$line" == \!* ]]; then
     echo "${line#!}" >> "$DENY_TMP"
+  elif [[ "$line" == @defaultMode=* ]]; then
+    DEFAULT_MODE_VAL="${line#@defaultMode=}"
   else
     echo "$line" >> "$ALLOW_TMP"
   fi
@@ -80,12 +84,13 @@ ALLOW_COUNT=$(wc -l < "$ALLOW_TMP" | tr -d ' ')
 DENY_COUNT=$(wc -l < "$DENY_TMP" | tr -d ' ')
 
 # ── Merge into settings.json via python3 ─────────────────────────────────────
-RESULT="$(python3 - "$SETTINGS_FILE" "$ALLOW_TMP" "$DENY_TMP" <<'PYEOF'
+RESULT="$(python3 - "$SETTINGS_FILE" "$ALLOW_TMP" "$DENY_TMP" "$DEFAULT_MODE_VAL" <<'PYEOF'
 import json, sys, os
 
-settings_path = sys.argv[1]
-allow_file    = sys.argv[2]
-deny_file     = sys.argv[3]
+settings_path    = sys.argv[1]
+allow_file       = sys.argv[2]
+deny_file        = sys.argv[3]
+default_mode_val = sys.argv[4]
 
 with open(allow_file) as f:
     new_allow = [l.strip() for l in f if l.strip()]
@@ -112,6 +117,17 @@ data["permissions"]["allow"] = existing_allow + added_allow
 if new_deny:
     data["permissions"]["deny"] = existing_deny + added_deny
 
+# Handle defaultMode
+mode_added   = False
+mode_skipped = False
+if default_mode_val:
+    existing_mode = data["permissions"].get("defaultMode")
+    if existing_mode == default_mode_val:
+        mode_skipped = True
+    else:
+        data["permissions"]["defaultMode"] = default_mode_val
+        mode_added = True
+
 # Clean up empty permissions key
 if not data["permissions"].get("allow"):
     data["permissions"].pop("allow", None)
@@ -121,11 +137,14 @@ if not data["permissions"]:
     data.pop("permissions", None)
 
 result = {
-    "json":        json.dumps(data, indent=2),
-    "added_allow": added_allow,
-    "added_deny":  added_deny,
+    "json":          json.dumps(data, indent=2),
+    "added_allow":   added_allow,
+    "added_deny":    added_deny,
     "skipped_allow": len(new_allow) - len(added_allow),
     "skipped_deny":  len(new_deny)  - len(added_deny),
+    "mode_added":    mode_added,
+    "mode_skipped":  mode_skipped,
+    "default_mode":  default_mode_val,
 }
 print(json.dumps(result))
 PYEOF
@@ -138,6 +157,8 @@ ADDED_ALLOW="$(echo "$RESULT"   | python3 -c "import json,sys; d=json.load(sys.s
 ADDED_DENY="$(echo "$RESULT"    | python3 -c "import json,sys; d=json.load(sys.stdin); print('\n'.join(d['added_deny']))")"
 SKIPPED_ALLOW="$(echo "$RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin)['skipped_allow'])")"
 SKIPPED_DENY="$(echo "$RESULT"  | python3 -c "import json,sys; print(json.load(sys.stdin)['skipped_deny'])")"
+MODE_ADDED="$(echo "$RESULT"    | python3 -c "import json,sys; print(json.load(sys.stdin)['mode_added'])")"
+MODE_SKIPPED="$(echo "$RESULT"  | python3 -c "import json,sys; print(json.load(sys.stdin)['mode_skipped'])")"
 
 ADDED_ALLOW_COUNT=$(echo "$ADDED_ALLOW" | grep -c . || true)
 ADDED_DENY_COUNT=$(echo "$ADDED_DENY"   | grep -c . || true)
@@ -154,12 +175,16 @@ echo -e "${B}  │${RESET}  File      : ${SETTINGS_FILE}"
 echo -e "${B}  └──────────────────────────────────────────────────────────────┘${RESET}"
 echo ""
 
-if [ "$ADDED_ALLOW_COUNT" -eq 0 ] && [ "$ADDED_DENY_COUNT" -eq 0 ]; then
-  warn "Nothing to add — all ${SKIPPED_ALLOW} allow and ${SKIPPED_DENY} deny entries already present."
+if [ "$ADDED_ALLOW_COUNT" -eq 0 ] && [ "$ADDED_DENY_COUNT" -eq 0 ] && [ "$MODE_ADDED" = "False" ]; then
+  warn "Nothing to add — all ${SKIPPED_ALLOW} allow, ${SKIPPED_DENY} deny entries already present${MODE_SKIPPED:+, defaultMode already set}."
   echo ""
   exit 0
 fi
 
+if [ "$MODE_ADDED" = "True" ]; then
+  echo -e "  ${G}Edit mode — defaultMode = ${DEFAULT_MODE_VAL}${RESET}"
+  echo ""
+fi
 if [ "$ADDED_ALLOW_COUNT" -gt 0 ]; then
   echo -e "  ${G}Auto-approve (allow) — ${ADDED_ALLOW_COUNT} entries:${RESET}"
   while IFS= read -r e; do [ -n "$e" ] && echo "    ✓  ${e}"; done <<< "$ADDED_ALLOW"
@@ -170,8 +195,10 @@ if [ "$ADDED_DENY_COUNT" -gt 0 ]; then
   while IFS= read -r e; do [ -n "$e" ] && echo "    ✗  ${e}"; done <<< "$ADDED_DENY"
   echo ""
 fi
-if [ "$SKIPPED_ALLOW" -gt 0 ] || [ "$SKIPPED_DENY" -gt 0 ]; then
-  info "Already present (skipped): ${SKIPPED_ALLOW} allow, ${SKIPPED_DENY} deny"
+if [ "$SKIPPED_ALLOW" -gt 0 ] || [ "$SKIPPED_DENY" -gt 0 ] || [ "$MODE_SKIPPED" = "True" ]; then
+  _skipped_msg="Already present (skipped): ${SKIPPED_ALLOW} allow, ${SKIPPED_DENY} deny"
+  [ "$MODE_SKIPPED" = "True" ] && _skipped_msg="${_skipped_msg}, defaultMode"
+  info "$_skipped_msg"
   echo ""
 fi
 

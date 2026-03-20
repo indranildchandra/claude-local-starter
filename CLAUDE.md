@@ -13,7 +13,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | File | Purpose |
 |------|---------|
 | `install.sh` | The installer — idempotent, safe to re-run |
-| `token-audit.sh` | Snapshot + restore extension states for token cost measurement |
+| `scripts/token-audit.sh` | Snapshot + restore extension states for token cost measurement |
+| `scripts/enable-safe-yolo.sh` | Add auto-approve permissions + `acceptEdits` mode to a repo |
+| `scripts/disable-safe-yolo.sh` | Remove safe-yolo permissions from a repo |
+| `scripts/config/claude-safe-yolo-permissions.txt` | Single source of truth for safe-yolo allow/deny/defaultMode |
 | `claude-md-master/CLAUDE.md` | Source of truth for `~/.claude/CLAUDE.md` — always overwrites on install |
 | `settings.json` | Source of truth for plugins, env vars, MCP servers, hooks — merged into `~/.claude/settings.json` |
 | `commands/` | Slash command definitions synced to `~/.claude/commands/` |

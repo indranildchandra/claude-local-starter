@@ -76,7 +76,10 @@ Always open this installed copy — not the `claude-local-starter.html` file in 
 | File | Purpose |
 |------|---------|
 | `install.sh` | The installer — idempotent, safe to re-run |
-| `token-audit.sh` | Measure token footprint of skills and plugins before enabling them |
+| `scripts/token-audit.sh` | Measure token footprint of skills and plugins before enabling them |
+| `scripts/enable-safe-yolo.sh` | Add auto-approve permissions to a repo's `.claude/settings.json` |
+| `scripts/disable-safe-yolo.sh` | Remove auto-approve permissions from a repo's `.claude/settings.json` |
+| `scripts/config/claude-safe-yolo-permissions.txt` | Single source of truth for safe-yolo permissions |
 | `claude-md-master/CLAUDE.md` | Source of truth for `~/.claude/CLAUDE.md` — always overwrites on install |
 | `settings.json` | Source of truth for `~/.claude/settings.json` |
 | `commands/` | Custom slash commands synced to `~/.claude/commands/` |
@@ -165,9 +168,9 @@ Synced to `~/.claude/skills/` on install.
 Before enabling a new skill or plugin permanently, measure its token footprint:
 
 ```bash
-bash token-audit.sh --save     # snapshot current state, enable everything
+bash scripts/token-audit.sh --save     # snapshot current state, enable everything
 # Open Claude Code → /reload-plugins → /context (note token counts)
-bash token-audit.sh --restore  # restore your original state
+bash scripts/token-audit.sh --restore  # restore your original state
 # Open Claude Code → /reload-plugins
 ```
 
@@ -211,12 +214,12 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 
 ## Contributing
 
-This repo is personal infrastructure, but if you've found something that makes Claude Code meaningfully better, a PR is welcome.
+PRs are welcome if you've found something that makes Claude Code meaningfully better.
 
 A few ground rules:
 
 - **Don't add things for completeness.** Every plugin, skill, and MCP in here is here because it earned its place through actual use. If you're adding something, say why it's better than what's already here or what gap it fills.
-- **Token cost matters.** Anything that loads into context by default needs to justify that cost. Check `token-audit.sh` before proposing anything context-on by default.
+- **Token cost matters.** Anything that loads into context by default needs to justify that cost. Check `scripts/token-audit.sh` before proposing anything context-on by default.
 - **Keep the defaults conservative.** New additions should ship disabled. Let users opt in.
 - **Test the installer.** Run `bash install.sh --dry-run` first, then `bash install.sh --clean-install` on a genuinely fresh setup before submitting. A dry run catching no errors is not the same as a clean install working end-to-end.
 

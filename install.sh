@@ -975,9 +975,9 @@ PYEOF
 } || warn "claude-local-starter.html not found in repo"
 
 # Sync yolo tools: permissions file + enable-safe-yolo.sh + disable-safe-yolo.sh
-YOLO_PERMS="${SCRIPT_DIR}/claude-safe-yolo-permissions.txt"
-YOLO_ENABLE="${SCRIPT_DIR}/enable-safe-yolo.sh"
-YOLO_DISABLE="${SCRIPT_DIR}/disable-safe-yolo.sh"
+YOLO_PERMS="${SCRIPT_DIR}/scripts/config/claude-safe-yolo-permissions.txt"
+YOLO_ENABLE="${SCRIPT_DIR}/scripts/enable-safe-yolo.sh"
+YOLO_DISABLE="${SCRIPT_DIR}/scripts/disable-safe-yolo.sh"
 
 if [ -f "$YOLO_PERMS" ]; then
   run "cp '$YOLO_PERMS' '${CLAUDE_DIR}/claude-safe-yolo-permissions.txt'"

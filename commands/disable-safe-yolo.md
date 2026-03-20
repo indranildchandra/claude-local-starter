@@ -1,7 +1,7 @@
 Disable safe-yolo permissions for a repository.
 
-Removes ONLY the entries listed in `~/.claude/claude-safe-yolo-permissions.txt` from
-`<repo>/.claude/settings.json`.
+Removes ONLY the allow/deny entries and `defaultMode` listed in `~/.claude/claude-safe-yolo-permissions.txt` from
+`<repo>/.claude/settings.json`. `defaultMode` is only removed if it still matches the value yolo set.
 Idempotent — manually added permissions are never touched.
 If the file becomes empty after removal, it is deleted entirely.
 Feel free to edit `~/.claude/claude-safe-yolo-permissions.txt` as your need evolves.
@@ -22,11 +22,11 @@ Check if the user passed a path or natural language hint in the arguments:
 1. From your environment context, collect all known working directories (primary + additional).
 2. Filter out non-repo paths — exclude anything under `~/.claude`, `~/.claude-work`, `/tmp`, or `/var`.
 3. Count what remains:
-   - **Exactly one** candidate → ask:
-     > "Safe-yolo will be disabled in **<DIR>**. Proceed? (y/n)"
-     Wait for reply before continuing.
+   - **Exactly one** candidate → announce it and proceed directly to Step 2 (no confirmation yet):
+     > "The only non-excluded working directory is **<DIR>**."
    - **Multiple** candidates → list them and ask:
      > "Which directory should I disable safe-yolo in?"
+     Wait for reply before continuing.
    - **Zero** candidates → ask the user to paste the full path.
 
 ## Step 2 — Show dry-run summary and confirm with user

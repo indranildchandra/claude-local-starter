@@ -70,6 +70,7 @@ fi
 # ── Parse permissions file ────────────────────────────────────────────────────
 ALLOW_TMP="$(mktemp)"
 DENY_TMP="$(mktemp)"
+DEFAULT_MODE_VAL=""
 
 while IFS= read -r line; do
   line="${line#"${line%%[![:space:]]*}"}"
@@ -77,18 +78,21 @@ while IFS= read -r line; do
   [[ -z "$line" || "$line" == \#* ]] && continue
   if [[ "$line" == \!* ]]; then
     echo "${line#!}" >> "$DENY_TMP"
+  elif [[ "$line" == @defaultMode=* ]]; then
+    DEFAULT_MODE_VAL="${line#@defaultMode=}"
   else
     echo "$line" >> "$ALLOW_TMP"
   fi
 done < "$PERMS_FILE"
 
 # ── Compute result via python3 ────────────────────────────────────────────────
-RESULT="$(python3 - "$SETTINGS_FILE" "$ALLOW_TMP" "$DENY_TMP" <<'PYEOF'
+RESULT="$(python3 - "$SETTINGS_FILE" "$ALLOW_TMP" "$DENY_TMP" "$DEFAULT_MODE_VAL" <<'PYEOF'
 import json, sys, os
 
-settings_path = sys.argv[1]
-allow_file    = sys.argv[2]
-deny_file     = sys.argv[3]
+settings_path    = sys.argv[1]
+allow_file       = sys.argv[2]
+deny_file        = sys.argv[3]
+default_mode_val = sys.argv[4]
 
 with open(allow_file) as f:
     yolo_allow = set(l.strip() for l in f if l.strip())
@@ -118,6 +122,14 @@ if kept_deny:
 else:
     data.get("permissions", {}).pop("deny", None)
 
+# Handle defaultMode removal: only remove if it matches what yolo set
+mode_removed = False
+if default_mode_val:
+    existing_mode = data.get("permissions", {}).get("defaultMode")
+    if existing_mode == default_mode_val:
+        data.get("permissions", {}).pop("defaultMode", None)
+        mode_removed = True
+
 # Clean up empty permissions key
 if "permissions" in data and not data["permissions"]:
     del data["permissions"]
@@ -132,6 +144,8 @@ result = {
     "removed_deny":  removed_deny,
     "kept_allow":    kept_allow,
     "kept_deny":     kept_deny,
+    "mode_removed":  mode_removed,
+    "default_mode":  default_mode_val,
 }
 print(json.dumps(result))
 PYEOF
@@ -144,6 +158,7 @@ DELETE_FILE="$(echo "$RESULT"      | python3 -c "import json,sys; print(json.loa
 REMOVED_ALLOW="$(echo "$RESULT"    | python3 -c "import json,sys; d=json.load(sys.stdin); print('\n'.join(d['removed_allow']))")"
 REMOVED_DENY="$(echo "$RESULT"     | python3 -c "import json,sys; d=json.load(sys.stdin); print('\n'.join(d['removed_deny']))")"
 KEPT_ALLOW="$(echo "$RESULT"       | python3 -c "import json,sys; d=json.load(sys.stdin); print('\n'.join(d['kept_allow']))")"
+MODE_REMOVED="$(echo "$RESULT"     | python3 -c "import json,sys; print(json.load(sys.stdin)['mode_removed'])")"
 
 REMOVED_ALLOW_COUNT=$(echo "$REMOVED_ALLOW" | grep -c . || true)
 REMOVED_DENY_COUNT=$(echo "$REMOVED_DENY"   | grep -c . || true)
@@ -155,7 +170,7 @@ KEPT_ALLOW_COUNT=$(echo "$KEPT_ALLOW"       | grep -c . || true)
 B='\033[1m' RESET='\033[0m'
 
 # ── Nothing was managed by yolo ───────────────────────────────────────────────
-if [ "$REMOVED_ALLOW_COUNT" -eq 0 ] && [ "$REMOVED_DENY_COUNT" -eq 0 ]; then
+if [ "$REMOVED_ALLOW_COUNT" -eq 0 ] && [ "$REMOVED_DENY_COUNT" -eq 0 ] && [ "$MODE_REMOVED" = "False" ]; then
   echo ""
   echo -e "${B}  ┌─ disable-safe-yolo ──────────────────────────────────────────┐${RESET}"
   echo -e "${B}  │${RESET}  Directory : ${TARGET_DIR}"
@@ -175,6 +190,10 @@ echo -e "${B}  │${RESET}  File      : ${SETTINGS_FILE}"
 echo -e "${B}  └──────────────────────────────────────────────────────────────┘${RESET}"
 echo ""
 
+if [ "$MODE_REMOVED" = "True" ]; then
+  echo -e "  ${Y}Will remove defaultMode = ${DEFAULT_MODE_VAL}${RESET}"
+  echo ""
+fi
 if [ "$REMOVED_ALLOW_COUNT" -gt 0 ]; then
   echo -e "  ${Y}Will remove from allow (${REMOVED_ALLOW_COUNT}):${RESET}"
   while IFS= read -r e; do [ -n "$e" ] && echo "    -  ${e}"; done <<< "$REMOVED_ALLOW"
