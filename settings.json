@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "auto",
     "allow": [
       "Bash(~/.claude/enable-safe-yolo.sh *)",
       "Bash(~/.claude/disable-safe-yolo.sh *)"
@@ -38,6 +39,47 @@
             "type": "command",
             "command": "e=$(printf '\\n---\\n## %s — [Auto-Compact Snapshot]\\n**Session:** %s\\n**CWD:** %s\\n**Note:** Run /log-context for full detail if not already done.\\n' \"$(date '+%Y-%m-%d %H:%M:%S')\" \"${CLAUDE_SESSION_ID:-unknown}\" \"${PWD}\"); if [ -f tasks/tracker.md ]; then tmp=$(mktemp) && { head -3 tasks/tracker.md; printf '%s\\n' \"$e\"; tail -n +4 tasks/tracker.md; } > \"$tmp\" && mv \"$tmp\" tasks/tracker.md; else printf '%s\\n' \"$e\" > tasks/tracker.md; fi 2>/dev/null || true"
           }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/scripts/limit-watchdog.sh" },
+          { "type": "command", "command": "~/.claude/scripts/aidlc-guard.sh" }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/scripts/limit-watchdog.sh" },
+          { "type": "command", "command": "~/.claude/scripts/aidlc-guard.sh" }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f ~/.claude/.handover-ready ] && echo 'Handover marker found — run /init-context to resume your last session.' || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"$HOME/.claude/.ollama-override\" ] && [ -f \"$HOME/.claude/.ollama-reset-time\" ]; then reset_epoch=$(cat \"$HOME/.claude/.ollama-reset-time\" | tr -d '[:space:]'); now_epoch=$(date '+%s'); remaining=$((reset_epoch - now_epoch)); if [ \"$remaining\" -le 300 ] && [ \"$remaining\" -gt 0 ]; then echo \"WARNING: Anthropic limit resets in $((remaining / 60)) min — run /log-context NOW to preserve session state.\"; fi; fi"
+          },
+          { "type": "command", "command": "~/.claude/scripts/claudeignore-guard.sh" }
         ]
       }
     ]

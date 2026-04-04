@@ -9,6 +9,8 @@ Append-only. Newest at TOP. Written BEFORE implementation begins.
 
 YYYY-MM-DD HH:MM:SS - <one-line summary of what is being planned>
 
+**Session:** ${CLAUDE_SESSION_ID:-unknown}
+
 ### Context
 <Why this is being done. What triggered this work. Stakeholder input or constraints.>
 

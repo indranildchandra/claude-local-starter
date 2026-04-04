@@ -9,11 +9,19 @@ Append-only. Newest at TOP. Written AFTER implementation is complete.
 
 YYYY-MM-DD HH:MM:SS - <one-line summary of what changed>
 
+**Session:** ${CLAUDE_SESSION_ID:-unknown}
+
 ### Changes
 - <what changed and why>
 
 ### Files
 - `path/to/file` — <created | modified | deleted>
+
+**Key change:**
+```diff
+- old behaviour / removed code
++ new behaviour / added code
+```
 ```
 
 ## File header (create once if file does not exist)

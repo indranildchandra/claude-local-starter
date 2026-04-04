@@ -120,10 +120,14 @@ if new_deny:
 # Handle defaultMode
 mode_added   = False
 mode_skipped = False
+mode_changed = False
 if default_mode_val:
     existing_mode = data["permissions"].get("defaultMode")
     if existing_mode == default_mode_val:
         mode_skipped = True
+    elif existing_mode and existing_mode != default_mode_val:
+        data["permissions"]["defaultMode"] = default_mode_val
+        mode_changed = True  # was set to something different — log clearly
     else:
         data["permissions"]["defaultMode"] = default_mode_val
         mode_added = True
@@ -144,6 +148,7 @@ result = {
     "skipped_deny":  len(new_deny)  - len(added_deny),
     "mode_added":    mode_added,
     "mode_skipped":  mode_skipped,
+    "mode_changed":  mode_changed,
     "default_mode":  default_mode_val,
 }
 print(json.dumps(result))
@@ -159,6 +164,7 @@ SKIPPED_ALLOW="$(echo "$RESULT" | python3 -c "import json,sys; print(json.load(s
 SKIPPED_DENY="$(echo "$RESULT"  | python3 -c "import json,sys; print(json.load(sys.stdin)['skipped_deny'])")"
 MODE_ADDED="$(echo "$RESULT"    | python3 -c "import json,sys; print(json.load(sys.stdin)['mode_added'])")"
 MODE_SKIPPED="$(echo "$RESULT"  | python3 -c "import json,sys; print(json.load(sys.stdin)['mode_skipped'])")"
+MODE_CHANGED="$(echo "$RESULT"  | python3 -c "import json,sys; print(json.load(sys.stdin)['mode_changed'])")"
 
 ADDED_ALLOW_COUNT=$(echo "$ADDED_ALLOW" | grep -c . || true)
 ADDED_DENY_COUNT=$(echo "$ADDED_DENY"   | grep -c . || true)
@@ -175,14 +181,18 @@ echo -e "${B}  │${RESET}  File      : ${SETTINGS_FILE}"
 echo -e "${B}  └──────────────────────────────────────────────────────────────┘${RESET}"
 echo ""
 
-if [ "$ADDED_ALLOW_COUNT" -eq 0 ] && [ "$ADDED_DENY_COUNT" -eq 0 ] && [ "$MODE_ADDED" = "False" ]; then
+if [ "$ADDED_ALLOW_COUNT" -eq 0 ] && [ "$ADDED_DENY_COUNT" -eq 0 ] && [ "$MODE_ADDED" = "False" ] && [ "$MODE_CHANGED" = "False" ]; then
   warn "Nothing to add — all ${SKIPPED_ALLOW} allow, ${SKIPPED_DENY} deny entries already present${MODE_SKIPPED:+, defaultMode already set}."
   echo ""
   exit 0
 fi
 
 if [ "$MODE_ADDED" = "True" ]; then
-  echo -e "  ${G}Edit mode — defaultMode = ${DEFAULT_MODE_VAL}${RESET}"
+  echo -e "  ${G}Permission mode — defaultMode = ${DEFAULT_MODE_VAL}${RESET}"
+  echo ""
+fi
+if [ "$MODE_CHANGED" = "True" ]; then
+  echo -e "  ${Y}Permission mode changed — defaultMode overwritten to ${DEFAULT_MODE_VAL}${RESET}"
   echo ""
 fi
 if [ "$ADDED_ALLOW_COUNT" -gt 0 ]; then

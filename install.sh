@@ -258,6 +258,19 @@ if "hooks" in repo:
             if cmd not in existing_cmds:
                 live["hooks"][event].append(entry)
 
+# permissions: additive merge — never remove user entries; defaultMode only set if absent
+if "permissions" in repo:
+    live.setdefault("permissions", {})
+    for lst in ("allow", "deny"):
+        if lst in repo["permissions"]:
+            live["permissions"].setdefault(lst, [])
+            existing = set(live["permissions"][lst])
+            for entry in repo["permissions"][lst]:
+                if entry not in existing:
+                    live["permissions"][lst].append(entry)
+    if "defaultMode" in repo["permissions"] and "defaultMode" not in live["permissions"]:
+        live["permissions"]["defaultMode"] = repo["permissions"]["defaultMode"]
+
 with open(live_path, "w") as f:
     json.dump(live, f, indent=2)
 print("  merged")
@@ -299,6 +312,7 @@ step "5 / Skills -- install via npx skills add"
 #   shadcn-ui             shadcn/ui deep knowledge  (npx skills add shadcn/ui)
 #   web-design-guidelines Vercel Labs web design best practices
 #   humanizer             strips AI writing patterns (blader)
+#   codereview-roasted    Linus-style opinionated code review (OpenHands)
 
 install_skill() {
   local pkg="$1"   # e.g. anthropics/skills
@@ -337,11 +351,12 @@ install_skill "anthropics/skills"                              "frontend-design"
 install_skill "nextlevelbuilder/ui-ux-pro-max-skill"           "ui-ux-pro-max"
 install_skill "shadcn/ui"                                      "shadcn"
 install_skill "vercel-labs/agent-skills"                       "web-design-guidelines"
+install_skill "openhands/extensions"                           "codereview-roasted"
 
 # Patch community skills: inject disable-model-invocation: true if missing.
 # Skills remain installed and user-invocable via /skill-name but cost
 # zero tokens at session start (not listed in Claude's context).
-for skill in frontend-design ui-ux-pro-max shadcn web-design-guidelines; do
+for skill in frontend-design ui-ux-pro-max shadcn web-design-guidelines codereview-roasted; do
   skill_md="${CLAUDE_DIR}/skills/${skill}/SKILL.md"
   if [ -f "$skill_md" ] && ! grep -q "disable-model-invocation" "$skill_md"; then
     if ! $DRY_RUN; then
@@ -664,7 +679,19 @@ CTXMD
 fi
 
 # ════════════════════════════════════════════════════════════════
-step "12 / Shell aliases and functions -- ${SHELL_RC}"
+step "12 / Cleanup -- remove stale launchd switchback job (v1 artifact)"
+# ════════════════════════════════════════════════════════════════
+_stale_plist="${HOME}/Library/LaunchAgents/com.claude.switchback.plist"
+if [ -f "$_stale_plist" ]; then
+  run "launchctl bootout 'gui/$(id -u)' '$_stale_plist' 2>/dev/null || true"
+  run "rm -f '$_stale_plist'"
+  ok "Removed stale launchd switchback plist"
+else
+  info "No stale launchd switchback plist found -- skipping"
+fi
+
+# ════════════════════════════════════════════════════════════════
+step "13 / Shell aliases and functions -- ${SHELL_RC}" # (was 12)
 # ════════════════════════════════════════════════════════════════
 
 # On --update or default run, remove the old managed block and rewrite it
@@ -927,13 +954,174 @@ for k, v in sorted(servers.items()):
 "
 }
 
+# ── Ollama routing — limit-triggered auto-switchover ─────────────────
+
+_claude_notify() {
+  local msg="$1" title="${2:-Claude Code}"
+  if command -v osascript &>/dev/null; then
+    osascript -e 'display notification "'"$msg"'" with title "'"$title"'"' 2>/dev/null || true
+  elif command -v notify-send &>/dev/null; then
+    notify-send "$title" "$msg" 2>/dev/null || true
+  fi
+  echo "🔔 $title: $msg"
+}
+
+_claude_pick_model() {
+  local conf="$HOME/.claude/ollama.conf"
+  local default_model="kimi-k2.5:cloud"
+  [ -f "$conf" ] && { source "$conf" 2>/dev/null; default_model="${OLLAMA_DEFAULT_MODEL:-$default_model}"; }
+
+  local saved_model
+  saved_model=$(cat "$HOME/.claude/.ollama-model" 2>/dev/null | tr -d '[:space:]')
+  local chosen_model="${saved_model:-$default_model}"
+
+  if [ -t 0 ] && [ -t 1 ] && command -v ollama &>/dev/null; then
+    local models=()
+    while IFS= read -r line; do
+      models+=("$line")
+    done < <(ollama list 2>/dev/null | awk 'NR>1 {print $1}')
+
+    if [ "${#models[@]}" -gt 0 ]; then
+      echo ""
+      echo "Ollama models available:"
+      local i=1
+      for m in "${models[@]}"; do
+        [ "$m" = "$chosen_model" ] && echo "  $i) $m  ← default" || echo "  $i) $m"
+        (( i++ ))
+      done
+      echo ""
+      read -r -p "Select model [Enter = $chosen_model]: " selection || selection=""
+      if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -ge 1 ] && [ "$selection" -le "${#models[@]}" ]; then
+        # Walk array with counter — portable across bash (0-indexed) and zsh (1-indexed)
+        local _idx=1
+        for _m in "${models[@]}"; do
+          if [ "$_idx" -eq "$selection" ]; then chosen_model="$_m"; break; fi
+          (( _idx++ ))
+        done
+      fi
+      echo "$chosen_model" > "$HOME/.claude/.ollama-model"
+    fi
+  fi
+  export OLLAMA_MODEL="$chosen_model"
+}
+
+claude() {
+  local override="$HOME/.claude/.ollama-override"
+  local reset_file="$HOME/.claude/.ollama-reset-time"
+  local registry="$HOME/.claude/.active-projects"
+  local conf="$HOME/.claude/ollama.conf"
+  local ollama_host="http://localhost:11434"
+  [ -f "$conf" ] && { source "$conf" 2>/dev/null; ollama_host="${OLLAMA_HOST:-$ollama_host}"; }
+
+  if [ -f "$override" ]; then
+    if [ -f "$reset_file" ]; then
+      local reset_epoch now_epoch
+      reset_epoch=$(cat "$reset_file" 2>/dev/null | tr -d '[:space:]')
+      now_epoch=$(date '+%s')
+      if [ -n "$reset_epoch" ] && [ "$now_epoch" -ge "$reset_epoch" ] 2>/dev/null; then
+        local reset_human
+        reset_human=$(date -r "$reset_epoch" '+%H:%M' 2>/dev/null \
+          || date -d "@$reset_epoch" '+%H:%M' 2>/dev/null \
+          || echo "epoch $reset_epoch")
+        echo ""
+        echo "ℹ  Your Anthropic limit has reset (was due: $reset_human)."
+        printf "Switch back to Anthropic Claude now? [Y/n] "
+        read -r _switch_ans
+        if [[ "$_switch_ans" =~ ^[Nn] ]]; then
+          echo "Staying on Ollama. Run 'switch-back' when ready to return to Anthropic."
+        else
+          rm -f "$override" "$reset_file"
+          if [ -f "$registry" ]; then
+            local tmp; tmp=$(mktemp) || return 0
+            grep -vxF "$PWD" "$registry" > "$tmp" 2>/dev/null && mv "$tmp" "$registry" || rm -f "$tmp"
+          fi
+          echo "✅ Switched back to Anthropic. Starting session."
+          command claude "$@"
+          return
+        fi
+      fi
+    else
+      echo "⚠  Ollama override is active but no reset time was recorded."
+      echo "   Auto-switchback is disabled. Run 'switch-back' manually when you want to return to Anthropic."
+    fi
+
+    if ! curl -sf "${ollama_host}/api/tags" >/dev/null 2>&1; then
+      echo "⚠  Ollama is not running at ${ollama_host}."
+      echo "   Start it with: ollama serve"
+      echo "   (Or update OLLAMA_HOST in ~/.claude/ollama.conf)"
+      printf "Fall back to Anthropic for this session? [Y/n] "
+      read -r _fallback_ans
+      if [[ "$_fallback_ans" =~ ^[Nn] ]]; then
+        echo "Aborted. Start Ollama and retry."
+        return 1
+      fi
+      echo "Falling back to Anthropic for this session (override still active for next launch)."
+      command claude "$@"
+      return
+    fi
+
+    # shellcheck disable=SC1090
+    source "$override" || { echo "⚠  Failed to load Ollama override — check ~/.claude/.ollama-override"; return 1; }
+    _claude_pick_model
+    echo "⚡ Routing to Ollama ($OLLAMA_MODEL)"
+    command claude "$@"
+
+  else
+    if [ -f "$registry" ]; then
+      local tmp; tmp=$(mktemp) || return 0
+      grep -vxF "$PWD" "$registry" > "$tmp" 2>/dev/null && mv "$tmp" "$registry" || rm -f "$tmp"
+    fi
+    command claude "$@"
+  fi
+}
+
+switch-back() {
+  unset ANTHROPIC_BASE_URL
+  unset ANTHROPIC_AUTH_TOKEN
+  unset OLLAMA_MODEL
+
+  local key_backup="$HOME/.claude/.ollama-anthropic-key-backup"
+  local api_key=""
+
+  if [ -f "$key_backup" ]; then
+    api_key=$(cat "$key_backup" 2>/dev/null | tr -d '[:space:]')
+    rm -f "$key_backup"
+  fi
+
+  if [ -z "$api_key" ] && command -v security &>/dev/null; then
+    api_key=$(security find-generic-password -a claude -s "Claude API Key" -w 2>/dev/null || echo "")
+  fi
+
+  if [ -n "$api_key" ]; then
+    export ANTHROPIC_API_KEY="$api_key"
+    echo "✅ ANTHROPIC_API_KEY restored."
+  else
+    echo "⚠  Could not restore API key automatically."
+    echo "   Set manually: export ANTHROPIC_API_KEY='sk-ant-...'"
+    echo "   See KNOWN-ISSUES.md — 'API key restoration on Linux' for details."
+  fi
+
+  rm -f "$HOME/.claude/.ollama-override" \
+        "$HOME/.claude/.ollama-reset-time" \
+        "$HOME/.claude/.pre-switchback"
+
+  local registry="$HOME/.claude/.active-projects"
+  if [ -f "$registry" ]; then
+    local tmp; tmp=$(mktemp) || return 0
+    grep -vxF "$PWD" "$registry" > "$tmp" 2>/dev/null && mv "$tmp" "$registry" || rm -f "$tmp"
+  fi
+
+  _claude_notify "Switched back to Anthropic manually." "Claude Code"
+  echo "✅ Ready — run: claude (same terminal, no restart needed)"
+}
+
 # ── end claude-local-starter ──
 ZSHBLOCK
 fi
 ok "Shell functions written to $SHELL_RC"
 
 # ════════════════════════════════════════════════════════════════
-step "13 / Sync repo artefacts -> ~/.claude"
+step "14 / Sync repo artefacts -> ~/.claude"
 # ════════════════════════════════════════════════════════════════
 
 HTML_SRC="${SCRIPT_DIR}/claude-local-starter.html"
@@ -1020,6 +1208,76 @@ if [ -d "$SKILLS_SRC" ] && [ "$(ls -A "$SKILLS_SRC" 2>/dev/null)" ]; then
   info "  $(ls -1 "$SKILLS_SRC" 2>/dev/null | wc -l | tr -d ' ') skill(s) available"
 else
   info "No custom skills in repo skills/ directory -- add SKILL.md files there to distribute"
+fi
+
+# Deploy hook scripts to ~/.claude/scripts/
+run "mkdir -p '${CLAUDE_DIR}/scripts'"
+for _script in limit-watchdog.sh aidlc-guard.sh switch-to-anthropic.sh switch-to-ollama.sh claudeignore-guard.sh; do
+  _src="${SCRIPT_DIR}/scripts/${_script}"
+  if [ -f "$_src" ]; then
+    run "cp '$_src' '${CLAUDE_DIR}/scripts/${_script}'"
+    run "chmod +x '${CLAUDE_DIR}/scripts/${_script}'"
+    ok "${_script} -> ~/.claude/scripts/"
+  else
+    warn "${_script} not found in repo/scripts/ -- skipping"
+  fi
+done
+
+# Deploy ollama.conf — only if not already present (user customisations survive re-runs)
+_ollama_conf_src="${SCRIPT_DIR}/ollama.conf"
+_ollama_conf_dst="${CLAUDE_DIR}/ollama.conf"
+if [ -f "$_ollama_conf_src" ]; then
+  if [ ! -f "$_ollama_conf_dst" ]; then
+    run "cp '$_ollama_conf_src' '$_ollama_conf_dst'"
+    ok "ollama.conf -> ~/.claude/  (first install only)"
+  else
+    info "ollama.conf already exists at ~/.claude/ -- skipping (user customisations preserved)"
+  fi
+fi
+
+# Deploy default .claudeignore — only if not already present
+_claudeignore_dst="${CLAUDE_DIR}/.claudeignore"
+if [ ! -f "$_claudeignore_dst" ]; then
+  if ! $DRY_RUN; then
+    cat > "$_claudeignore_dst" <<'CLAUDEIGNORE'
+# ~/.claude/.claudeignore — files Claude will never read or edit
+# Syntax: one pattern per line, gitignore-style basename or path matching
+# Comments start with #. Add a .claudeignore in any repo root for project-specific rules.
+
+# Environment / secrets
+.env
+.env.*
+.envrc
+*.secret
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+id_ecdsa
+*.ppk
+
+# Cloud credentials
+.aws/credentials
+.aws/config
+gcloud/credentials.db
+service-account*.json
+
+# Application credential files
+*credentials*
+*secrets*
+.htpasswd
+.netrc
+CLAUDEIGNORE
+    ok ".claudeignore -> ~/.claude/  (default sensitive-file protection)"
+  else
+    echo -e "${Y}[dry-run]${RESET} Would write default ~/.claude/.claudeignore"
+  fi
+else
+  info ".claudeignore already exists at ~/.claude/ -- skipping"
 fi
 
 SCRIPT_DST="${CLAUDE_DIR}/install.sh"

@@ -22,8 +22,8 @@ Think of it as the all-stars setup — not everything available, just the things
 |-----------|---------|
 | `~/.claude/CLAUDE.md` | Global Claude Code behaviour (from `claude-md-master/CLAUDE.md`) |
 | `~/.claude/settings.json` | Plugins, env vars, MCP servers, hooks (deep-merged) |
-| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, aidlc-tracking, review-council, ppt-creator |
-| `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context`, `/create-ppt` |
+| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, codereview-roasted, aidlc-tracking, review-council |
+| `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context` |
 | LSP binaries | typescript-language-server (enabled), pyright (enabled), gopls, rust-analyzer, jdtls |
 | Browser automation | `@playwright/cli` with skills + Chromium |
 | MCP servers | context7 (enabled by default), gitnexus, context-mode, claude-mem, filesystem, supabase, vercel |
@@ -76,8 +76,14 @@ Always open this installed copy — not the `claude-local-starter.html` file in 
 | File | Purpose |
 |------|---------|
 | `install.sh` | The installer — idempotent, safe to re-run |
+| `scripts/limit-watchdog.sh` | Stop hook: detects Anthropic limits, writes Ollama override + handover marker |
+| `scripts/switch-to-anthropic.sh` | Two-phase switchback: signals Ollama session, then restores Anthropic routing |
+| `scripts/aidlc-guard.sh` | Stop hook: enforces AIDLC tracking discipline (non-fatal) |
+| `scripts/setup-ollama.sh` | Installs Ollama and pulls models for the switchover system |
 | `scripts/token-audit.sh` | Measure token footprint of skills and plugins before enabling them |
-| `scripts/enable-safe-yolo.sh` | Add auto-approve permissions to a repo's `.claude/settings.json` |
+| `scripts/switch-to-ollama.sh` | Manually activate Ollama routing: health check → model picker → write override + reset-time |
+| `scripts/claudeignore-guard.sh` | PreToolUse hook: blocks Read/Edit/Write on patterns in `.claudeignore` files |
+| `scripts/enable-safe-yolo.sh` | Add auto-approve permissions + `auto` mode to a repo's `.claude/settings.json` |
 | `scripts/disable-safe-yolo.sh` | Remove auto-approve permissions from a repo's `.claude/settings.json` |
 | `scripts/config/claude-safe-yolo-permissions.txt` | Single source of truth for safe-yolo permissions |
 | `claude-md-master/CLAUDE.md` | Source of truth for `~/.claude/CLAUDE.md` — always overwrites on install |
@@ -85,10 +91,20 @@ Always open this installed copy — not the `claude-local-starter.html` file in 
 | `commands/` | Custom slash commands synced to `~/.claude/commands/` |
 | `skills/` | Custom skills synced to `~/.claude/skills/` |
 | `claude-local-starter.html` | Visual dashboard — open the copy at `~/.claude/`, not this file |
+| `OLLAMA-SETUP-GUIDE.md` | Model comparison, prerequisites, and Ollama setup reference |
+| `LOCAL-MODEL-SWITCHOVER-DESIGN.md` | Architecture reference + sequence diagrams for the switchover system |
 
 ## Shell functions (available after install)
 
 ```bash
+# Ollama switchover (installed to ~/.zshrc):
+claude                       # auto-detects Ollama override — routes to local model if limit hit,
+                             # shows interactive model picker (default: kimi-k2.5:cloud),
+                             # otherwise routes normally to Anthropic
+
+switch-back                  # restore Anthropic env vars in the current terminal;
+                             # reads API key from backup file first, then Keychain
+
 list-skills                  # show all skills with context-on/off state
 enable-skill <name>          # let Claude auto-load skill at session start
 disable-skill <name>         # user-invocable only, zero idle token cost
@@ -154,8 +170,8 @@ Synced to `~/.claude/skills/` on install.
 |-------|--------|
 | `aidlc-tracking` | bundled (this repo) |
 | `review-council` | bundled (this repo) |
-| `ppt-creator` | bundled (this repo) |
 | `humanizer` | [blader/humanizer](https://github.com/blader/humanizer) |
+| `codereview-roasted` | [OpenHands/extensions](https://github.com/OpenHands/extensions/tree/main/skills/codereview-roasted) |
 | `playwright-cli` | [microsoft/playwright-cli](https://github.com/microsoft/playwright-cli) |
 | `ui-ux-pro-max` | [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) |
 | `shadcn` | [shadcn-ui/ui](https://github.com/shadcn-ui/ui/tree/main/skills/shadcn) |
@@ -201,7 +217,6 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 |-------|-------------|
 | `aidlc-tracking` | Canonical formats for all project tracking files — `plan.md`, `todo.md`, `tracker.md`, `lessons.md`, `changelog.md`, `design-review.md`. Exists so Claude never invents its own structure for these files and every project looks the same. |
 | `review-council` | Spins up a multi-persona review council for architecture and design decisions. 20 expert personas, parallel subagent analysis, structured debate, converges on a verdict with your input. Heavy but useful for decisions that actually matter. |
-| `ppt-creator` | Full presentation pipeline from brief to `.pptx`. Research → narrative → design system enforcement → Visual QA before output. Produces conference-ready decks in a consistent personal design system. Triggered via `/create-ppt`. |
 
 **Slash commands**
 
@@ -210,7 +225,50 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 | `/init-repo` | Bootstraps a project from scratch — runs gitnexus analysis, writes a `CLAUDE.md` tailored to the codebase, and scaffolds all AIDLC tracking files in one shot. Run once per new repo. |
 | `/design-review` | Triggers the `review-council` skill for a full architectural review. Pass a scope (file, module, or decision) or leave blank to review the whole repo. |
 | `/log-context` | Writes a detailed session snapshot to `tasks/tracker.md` before compaction. Preserves enough context that a cold-start in the next session doesn't lose the thread. |
-| `/create-ppt` | Triggers the `ppt-creator` skill. Walks through RESEARCH → ALIGN → STRUCTURE → GENERATE → REVIEW with checkpoints at each stage. Produces a named `.pptx` in the personal design system with full Visual QA before delivery. |
+| `/switch-local-model-on` | Manually activate Ollama routing for the current session |
+| `/switch-local-model-off` | Deactivate Ollama routing and switch back to Anthropic |
+| `/init-context` | Load session handover context on resume |
+
+## Apex Layer — Local Model Continuity
+
+When Anthropic usage limits hit, this system automatically reroutes Claude Code to a local (or cloud-proxied) Ollama model, preserves full session context, and switches back when limits reset — with no manual steps required.
+
+![Local Model Switchover Architecture](LOCAL-MODEL-SWITCHOVER-DESIGN.png)
+
+### How it works (5-phase cycle)
+
+| Phase | What happens |
+|-------|-------------|
+| **1. Normal session** | `claude` → wrapper checks for override file → none found → Anthropic API |
+| **2. Limit hit** | Stop hook fires → `limit-watchdog.sh` detects limit → writes `.ollama-override` + `.ollama-reset-time` + `.session-handover` (no external scheduler) |
+| **3. Ollama session** | `claude` → wrapper detects override → model picker → Ollama session → `/init-context` restores full context |
+| **4. Switchback** | User runs `claude` → wrapper checks reset time → if reset has passed: 'Switch back to Anthropic? [Y/n]' prompt → confirm → override deleted |
+| **5. Back to Anthropic** | `claude` → no override → `/init-context` loads Ollama session work → full continuity |
+
+### Setup
+
+```bash
+# Run the Ollama setup script (interactive — prompts for optional models):
+bash scripts/setup-ollama.sh
+
+# Or pull the recommended model directly:
+ollama pull kimi-k2.5:cloud  # default: cloud via Ollama, best quality, no local RAM
+```
+
+See [`OLLAMA-SETUP-GUIDE.md`](OLLAMA-SETUP-GUIDE.md) for model comparison and cloud model prerequisites.
+See [`LOCAL-MODEL-SWITCHOVER-DESIGN.md`](LOCAL-MODEL-SWITCHOVER-DESIGN.md) for full architecture + sequence diagrams.
+
+### Model defaults
+
+| Model | RAM | Context | Notes |
+|-------|-----|---------|-------|
+| `kimi-k2.5:cloud` | 0 GB | 128K+ | **Default** — cloud via Ollama, best quality, no local RAM |
+| `glm-4.7-flash` | 5–6 GB | 128K | Local — fast, works offline, no account needed |
+| `qwen3:4b` | 2.5 GB | 128K | Compact local option |
+| `qwen3:30b` | 20+ GB | 128K | Best local reasoning |
+| `qwen2.5-coder:7b` | 4.7 GB | 32K | Code generation on constrained machines |
+
+---
 
 ## Contributing
 

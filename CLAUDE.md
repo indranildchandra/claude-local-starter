@@ -13,15 +13,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | File | Purpose |
 |------|---------|
 | `install.sh` | The installer — idempotent, safe to re-run |
+| `scripts/limit-watchdog.sh` | Stop hook: detects Anthropic limits, writes override + epoch reset-time file (no launchd) |
+| `scripts/switch-to-anthropic.sh` | Thin wrapper — prints tip to use `switch-back` shell function instead |
+| `scripts/switch-to-ollama.sh` | Manually activate Ollama routing: health check → model picker → write override + reset-time |
+| `scripts/aidlc-guard.sh` | Stop hook: enforces AIDLC tracking discipline (non-fatal) |
+| `scripts/claudeignore-guard.sh` | PreToolUse hook: blocks Read/Edit/Write on patterns in `.claudeignore` files |
+| `scripts/setup-ollama.sh` | Installs Ollama and pulls models — run once per machine |
 | `scripts/token-audit.sh` | Snapshot + restore extension states for token cost measurement |
-| `scripts/enable-safe-yolo.sh` | Add auto-approve permissions + `acceptEdits` mode to a repo |
+| `scripts/enable-safe-yolo.sh` | Add auto-approve permissions + `auto` mode to a repo |
 | `scripts/disable-safe-yolo.sh` | Remove safe-yolo permissions from a repo |
 | `scripts/config/claude-safe-yolo-permissions.txt` | Single source of truth for safe-yolo allow/deny/defaultMode |
+| `ollama.conf` | Template config for Ollama routing — deployed to `~/.claude/ollama.conf` on first install |
 | `claude-md-master/CLAUDE.md` | Source of truth for `~/.claude/CLAUDE.md` — always overwrites on install |
 | `settings.json` | Source of truth for plugins, env vars, MCP servers, hooks — merged into `~/.claude/settings.json` |
 | `commands/` | Slash command definitions synced to `~/.claude/commands/` |
 | `skills/` | Custom skill directories synced to `~/.claude/skills/` |
 | `claude-local-starter.html` | Visual dashboard — open from `~/.claude/` after install (data is injected there) |
+| `OLLAMA-SETUP-GUIDE.md` | Model comparison, prerequisites, and Ollama setup reference |
+| `LOCAL-MODEL-SWITCHOVER-DESIGN.md` | Architecture reference + full sequence diagrams for the switchover system |
 
 ### Installer Modes
 
@@ -47,13 +56,18 @@ bash install.sh --dry-run        # preview all actions, no changes written
 12. Register MCP servers via `npx gitnexus setup`
 13. Write `~/.claude/plugin_commands.sh` (manual paste into Claude Code)
 14. Create `~/.claude-work/` structure and templates
-15. Write shell aliases/functions to `~/.zshrc` / `~/.bashrc`
-16. Sync `commands/`, `skills/`, HTML dashboard → `~/.claude/` (with settings.json + CLAUDE.md injected into dashboard)
+15. Remove stale launchd switchback plist (v1 artifact cleanup)
+16. Write shell aliases/functions to `~/.zshrc` / `~/.bashrc` (includes `_claude_notify`, `_claude_pick_model`, `claude()` wrapper, `switch-back`)
+17. Sync `commands/`, `skills/`, HTML dashboard → `~/.claude/`; deploy all hook scripts → `~/.claude/scripts/`; write `ollama.conf` and `.claudeignore` if not present
 
 ### Shell Functions Installed
 
 After running the installer, these functions are available in your shell:
 
+- `claude` — wrapper: lazy reset-time check → user prompt → Ollama health check → model picker → launch; falls back to Anthropic if Ollama is unreachable
+- `switch-back` — restore Anthropic env vars in the current terminal; reads API key from backup file first, then Keychain
+- `_claude_notify` — desktop notification helper (macOS + Linux + terminal echo fallback)
+- `_claude_pick_model` — interactive Ollama model picker (zsh-compatible); reads `ollama.conf` for default model
 - `cw` / `claude-work` — launch Claude with `~/.claude-work` context (exit and run `claude` to go without)
 - `enable-skill <name>` / `disable-skill <name>` — toggle `disable-model-invocation` in SKILL.md
 - `list-skills` — show all skills with context-on/off state
@@ -77,6 +91,20 @@ All disabled by default except `context7`. Use `enable-mcp <name>` to activate.
 | `supabase` | URL | Database queries |
 | `vercel` | URL | Deploy and logs |
 
+### Source of Truth Rule — Repo First, Then Sync
+
+**All changes to skills, commands, settings, and personas must be made in the repo first, then synced to `~/.claude/`.**
+
+| What you want to change | Edit here (repo) | Then sync via |
+|------------------------|-----------------|---------------|
+| Skills (new or modified) | `skills/<name>/` | `bash install.sh` or manual `cp -r skills/<name> ~/.claude/skills/` |
+| Slash commands | `commands/<name>.md` | `bash install.sh` or manual `cp commands/<name>.md ~/.claude/commands/` |
+| Review council personas | `skills/review-council/standard-personas/` | `bash install.sh` or manual `cp` to `~/.claude/skills/review-council/standard-personas/` |
+| Hook settings / MCP config | `settings.json` | `bash install.sh` (merges) |
+| Global CLAUDE.md | `claude-md-master/CLAUDE.md` | `bash install.sh` (always overwrites) |
+
+**Never edit `~/.claude/` directly** — changes made there are lost on the next `install.sh` run. The repo is the single source of truth; `~/.claude/` is a deployment target.
+
 ### Adding Custom Skills
 
 Place skill directories under `skills/` — each needs a `SKILL.md`. The installer syncs them to `~/.claude/skills/` without overwriting existing customisations.
@@ -87,7 +115,7 @@ Place skill directories under `skills/` — each needs a `SKILL.md`. The install
 |-------|---------|
 | `aidlc-tracking` | Canonical formats for all project tracking files |
 | `review-council` | Multi-persona architecture review council |
-| `ppt-creator` | Personal presentation builder — research, narrative, design system, QA pipeline |
+| `codereview-roasted` | Linus-style opinionated code review — data structures first, 7 scenarios, no flattery |
 
 ### Adding Custom Commands
 
@@ -100,7 +128,6 @@ Place `.md` files under `commands/` — they sync to `~/.claude/commands/` and b
 | `/init-repo` | Bootstrap gitnexus + CLAUDE.md + AIDLC tracking files for a new repo |
 | `/design-review` | Trigger the `review-council` skill for a full architectural review |
 | `/log-context` | Write a pre-compact session snapshot to `tasks/tracker.md` |
-| `/create-ppt` | Triggers the `ppt-creator` skill — builds a `.pptx` with full research, narrative arc, personal design system, and Visual QA pipeline |
 
 ---
 

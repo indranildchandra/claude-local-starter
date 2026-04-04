@@ -122,11 +122,13 @@ if kept_deny:
 else:
     data.get("permissions", {}).pop("deny", None)
 
-# Handle defaultMode removal: only remove if it matches what yolo set
+# Handle defaultMode removal: remove if it matches what yolo set OR any known yolo value
+# (handles the case where user changed it from e.g. "auto" to "acceptEdits" after enabling)
+KNOWN_YOLO_MODES = {"auto", "acceptEdits"}
 mode_removed = False
 if default_mode_val:
     existing_mode = data.get("permissions", {}).get("defaultMode")
-    if existing_mode == default_mode_val:
+    if existing_mode in KNOWN_YOLO_MODES:
         data.get("permissions", {}).pop("defaultMode", None)
         mode_removed = True
 

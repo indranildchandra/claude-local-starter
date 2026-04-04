@@ -33,10 +33,11 @@
 #   /disable-safe-yolo                  # from inside a Claude Code session
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── Edit mode ────────────────────────────────────────────────────────────────
-# acceptEdits: Claude auto-accepts file edits without prompting per-edit.
-# Remove this line to keep the default "ask" behaviour for file writes.
-@defaultMode=acceptEdits
+# ── Permission mode ───────────────────────────────────────────────────────────
+# auto: Claude auto-approves operations not covered by the explicit allow/deny
+# lists below. Works with the global defaultMode=auto in ~/.claude/settings.json:
+# allow list = explicitly approved, deny list = hard-blocked, everything else = auto.
+@defaultMode=auto
 
 # ── Claude Code native file tools ────────────────────────────────────────────
 # Claude Code's own file tools are safer than raw Bash for file operations:
@@ -78,18 +79,18 @@ LSP(*)
 # ── MCP: context-mode (sandbox execution — used every session) ────────────────
 # context-mode runs commands/analysis inside a sandbox and returns summaries,
 # keeping large outputs out of the main context window.
-mcp__plugin_context-mode_context-mode__ctx_execute(*)
-mcp__plugin_context-mode_context-mode__ctx_execute_file(*)
-mcp__plugin_context-mode_context-mode__ctx_index(*)
-mcp__plugin_context-mode_context-mode__ctx_search(*)
-mcp__plugin_context-mode_context-mode__ctx_fetch_and_index(*)
-mcp__plugin_context-mode_context-mode__ctx_batch_execute(*)
-mcp__plugin_context-mode_context-mode__ctx_stats(*)
+mcp__plugin_context-mode_context-mode__ctx_execute
+mcp__plugin_context-mode_context-mode__ctx_execute_file
+mcp__plugin_context-mode_context-mode__ctx_index
+mcp__plugin_context-mode_context-mode__ctx_search
+mcp__plugin_context-mode_context-mode__ctx_fetch_and_index
+mcp__plugin_context-mode_context-mode__ctx_batch_execute
+mcp__plugin_context-mode_context-mode__ctx_stats
 
 # ── MCP: Context7 (live docs fetching) ────────────────────────────────────────
 # Fetches up-to-date library documentation on demand.
-mcp__claude_ai_Context7__resolve-library-id(*)
-mcp__claude_ai_Context7__query-docs(*)
+mcp__claude_ai_Context7__resolve-library-id
+mcp__claude_ai_Context7__query-docs
 
 # ── Bash: package managers ────────────────────────────────────────────────────
 Bash(npm *)
@@ -182,6 +183,10 @@ Bash(cd *)
 Bash(cd:*)
 Bash(bash *)
 Bash(bash:*)
+Bash(sh *)
+Bash(sh:*)
+Bash(./scripts/*)
+Bash(scripts/*)
 Bash(export *)
 Bash(export:*)
 Bash(source *)
@@ -220,8 +225,7 @@ Bash(rsync *)
 Bash(rsync:*)
 
 # ── Bash: media / document processing ────────────────────────────────────────
-# soffice (LibreOffice), pdftoppm, convert (ImageMagick) — used in ppt-creator
-# VQA pipeline for rendering slides to images for visual inspection.
+# soffice (LibreOffice), pdftoppm, convert (ImageMagick) — document processing tools
 Bash(soffice *)
 Bash(soffice:*)
 Bash(pdftoppm *)

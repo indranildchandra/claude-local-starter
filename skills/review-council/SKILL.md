@@ -70,7 +70,8 @@ Complexity: simple | medium | complex
 2. Load **only** the selected persona files — do not load all 20.
 3. Apply council size rule from complexity rating.
 4. Ensure at least one of: `staff-engineer`, `cloud-cost-architect`, `appsec-architect`.
-5. Add any user-requested custom personas.
+5. **Always include `adversarial-challenger`** — it is domain-agnostic and mandatory on every non-trivial review regardless of scope or complexity. A council that has converged without an adversarial voice is incomplete.
+6. Add any user-requested custom personas.
 6. Present the council lineup to the human: "Council will be: [list]. Proceed?"
 
 ---

@@ -18,6 +18,8 @@
 - Offload research, exploration, and parallel analysis to subagents
 - For complex problems, throw more compute at it via subagents
 - One task per subagent for focused execution
+- **AIDLC in every subagent**: Every implementer subagent prompt MUST include: "After completing your task: (1) write a task-complete entry to `tasks/tracker.md` using the aidlc-tracking skill format; (2) mark the corresponding checklist item in `docs/plan.md` as `[x]`; (3) if you discovered a new pattern or fixed a bug, prepend a lesson to `tasks/lessons.md`."
+- **Parent AIDLC responsibility**: After each subagent completes, the parent agent must verify the tracker/plan entries were written and fill any gaps manually
 
 ### 3. External Integration Research
 - For ANY external third-party system (APIs, SDKs, cloud services, auth providers):
@@ -89,6 +91,22 @@ corresponding format from the `aidlc-tracking` skill (`formats/<file>.md`) — n
 | `tasks/lessons.md` | Per-repo learning log, one entry per lesson | Append newest at top | `aidlc-tracking/formats/lessons.md` |
 | `audit/changelog.md` | What changed in the codebase, written **after** implementation | Append newest at top | `aidlc-tracking/formats/changelog.md` |
 | `docs/design-review.md` | Council review output from `/design-review` | Append newest at top | `aidlc-tracking/formats/design-review.md` |
+
+> Every tracking entry MUST include `**Session:** $CLAUDE_SESSION_ID`. When writing a `tracker.md` or `changelog.md` entry after an implementation task, include a `**Key change:**` block with the most significant diff or function signature (max 20 lines).
+
+### Repo-First Rule (no exceptions)
+
+All plan, todo, tracker, changelog, and lesson files MUST be written inside the active
+repo (`$PWD`), never to `~/.claude/` or any global path.
+
+- `docs/plan.md` — not `~/.claude/plans/*.md`
+- `tasks/todo.md` — not `~/.claude/todos/*.md`
+- `tasks/tracker.md` — not any global location
+
+The plan-mode tool creates `~/.claude/plans/<name>.md` as a system default for the
+approval workflow — this is acceptable. Once approved and implementation begins, write
+the working plan to `docs/plan.md` in the repo and keep `~/.claude/plans/` as the
+approval artifact only.
 
 ## Pre-Compact Rule
 
