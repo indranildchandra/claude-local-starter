@@ -260,7 +260,9 @@ flowchart TD
     P3 -- yes --> DETECT
     P3 -- no --> EXIT([exit 0\nno action])
 
-    DETECT --> SANITIZE[Sanitize model name\ntr -cd a-zA-Z0-9:._-]
+    DETECT --> GUARD{reset_time\nextracted AND\nalready elapsed?}
+    GUARD -- yes --> EXIT
+    GUARD -- no / not extracted --> SANITIZE[Sanitize model name\ntr -cd a-zA-Z0-9:._-]
     SANITIZE --> OVR[Atomic write\n.ollama-override\ntmp + mv]
     OVR --> HO[touch tasks/.session-handover]
     HO --> REG[Append CWD to\n.active-projects\ndedup check]
@@ -270,6 +272,8 @@ flowchart TD
     TIME -- no --> DONE([done])
     RT --> DONE
 ```
+
+**Reset-time guard:** After limit detection, if `$reset_time` was extracted from the message and the parsed epoch is already in the past (limit window already closed by the time the hook fires), `limit-watchdog.sh` exits without writing `.ollama-override`. This prevents writing a permanent Ollama override for a limit that has already reset — the most common cause of stale sentinel files persisting for hours or days.
 
 **Detection signal hierarchy:**
 
@@ -414,6 +418,26 @@ flowchart TD
     PLAN -- no --> DONE
     WP --> DONE([done — non-fatal])
 ```
+
+---
+
+### SessionStart Auto-Expire Hook — Stale Sentinel Cleanup
+
+Runs at every Claude Code session start regardless of how Claude was launched (terminal, Mac app, IDE extension). Cleans up stale Ollama sentinel files when the Anthropic reset epoch has already passed — the primary recovery path for machines that use the Mac app or IDE where the `claude()` terminal wrapper never runs.
+
+```mermaid
+flowchart TD
+    START([SessionStart hook fires]) --> BOTH{.ollama-override AND\n.ollama-reset-time\nboth exist?}
+    BOTH -- no --> NOOP([no action])
+    BOTH -- yes --> READ[Read reset epoch\nfrom .ollama-reset-time]
+    READ --> CMP{now >= reset_epoch?}
+    CMP -- no, limit still active --> NOOP
+    CMP -- yes, limit has reset --> CLEAN[rm .ollama-override\nrm .ollama-reset-time\nrm .handover-ready]
+    CLEAN --> MSG[Print: Anthropic limit has reset —\nOllama override cleared automatically]
+    MSG --> DONE([done])
+```
+
+**Why this matters:** The terminal `claude()` wrapper performs the same lazy reset check on every launch, but only fires in terminal sessions. The Mac app and IDE extensions launch Claude Code directly and never hit the wrapper. Before this hook, sentinel files would persist indefinitely on setups where the Mac app is the primary entry point — causing every session to be routed to Ollama long after the Anthropic limit reset.
 
 ---
 

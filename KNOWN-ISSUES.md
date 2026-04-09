@@ -57,6 +57,13 @@ print(json.load(open('$HOME/.claude/.credentials')).get('anthropicApiKey',''))
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
+**macOS — use `reset-to-anthropic.sh` with `--restore-api-key`:**
+```bash
+# Restores API key from backup file or Keychain, then clears all sentinel files:
+source scripts/reset-to-anthropic.sh --restore-api-key
+```
+Without the flag the script clears sentinel files only — API key restoration is opt-in.
+
 **Tested on:** macOS only (both backup file path and Keychain path).
 
 **Fix condition:** Add Linux credential store path as Priority 2 in `switch-back`, between backup file and Keychain. Low priority — macOS is the primary dev platform and the backup file path works cross-platform when the Stop hook fires cleanly.
@@ -115,3 +122,26 @@ print(int(reset.timestamp()))
 ```
 
 **Fix condition:** Could be improved by prompting the user for the reset time when `$reset_time` is empty in `limit-watchdog.sh`. Medium priority.
+
+---
+
+## Issue 6: Stale sentinel files persisting after Anthropic limit resets — Mitigated
+
+**Symptom:** Sentinel files (`.ollama-override`, `.ollama-reset-time`, `.handover-ready`) persist in `~/.claude/` long after the Anthropic rate limit has reset. Every `claude` launch in the terminal prompts for Ollama model selection even though the limit expired hours or days ago. Affects Mac app and IDE launches where the terminal `claude()` wrapper never runs, so the lazy reset check never fires.
+
+**Root cause:** The `claude()` zsh wrapper performs a lazy cleanup check on every terminal launch — if `current_time >= reset_epoch`, it prompts the user and removes the sentinel files. But this only works when Claude is launched via the terminal wrapper. Mac app and JetBrains/VS Code IDE extensions launch Claude Code directly, bypassing the wrapper entirely. Sentinel files can persist indefinitely on machines that primarily use the Mac app or IDE.
+
+**Mitigations added:**
+
+1. **SessionStart auto-expire hook** — fires at every Claude Code session start regardless of launch method. If `.ollama-override` and `.ollama-reset-time` both exist and the reset epoch has already passed, the hook silently removes all three sentinel files and prints: `"[info] Anthropic limit has reset — Ollama override cleared automatically."` This covers Mac app and IDE launches.
+
+2. **limit-watchdog.sh reset_time guard** — before writing `.ollama-override`, the hook parses `$reset_time` and checks whether the reset epoch is already in the past. If so, it exits without writing the override at all — preventing a sentinel from being written for a limit window that has already closed.
+
+3. **Manual reset script** — `scripts/reset-to-anthropic.sh` clears all sentinel files on demand. Run `source scripts/reset-to-anthropic.sh` to clean up immediately. Use `--restore-api-key` to also restore the API key from backup or Keychain.
+
+**Workaround (if mitigation doesn't fire):**
+```bash
+source ~/Documents/code/incheon/claude-local-starter/scripts/reset-to-anthropic.sh
+```
+
+**Fix condition:** Fully mitigated for the common cases. Residual gap: if both `.ollama-override` and `.ollama-reset-time` exist but the reset time file is corrupted/missing, the SessionStart hook won't fire (it requires both files). In that case, run the reset script manually.

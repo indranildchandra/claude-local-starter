@@ -22,6 +22,7 @@ Think of it as the all-stars setup — not everything available, just the things
 |-----------|---------|
 | `~/.claude/CLAUDE.md` | Global Claude Code behaviour (from `claude-md-master/CLAUDE.md`) |
 | `~/.claude/settings.json` | Plugins, env vars, MCP servers, hooks (deep-merged) |
+| `~/.claude/statusline-command.sh` | Status bar script — shows path, model, context %, effort level, 5h/7d rate limit usage |
 | `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, codereview-roasted, aidlc-tracking, review-council |
 | `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context` |
 | LSP binaries | typescript-language-server (enabled), pyright (enabled), gopls, rust-analyzer, jdtls |
@@ -82,6 +83,7 @@ Always open this installed copy — not the `claude-local-starter.html` file in 
 | `scripts/setup-ollama.sh` | Installs Ollama and pulls models for the switchover system |
 | `scripts/token-audit.sh` | Measure token footprint of skills and plugins before enabling them |
 | `scripts/switch-to-ollama.sh` | Manually activate Ollama routing: health check → model picker → write override + reset-time |
+| `scripts/reset-to-anthropic.sh` | Manually clear all Ollama sentinel files and restore Anthropic routing; `--restore-api-key` to also restore API key from backup |
 | `scripts/claudeignore-guard.sh` | PreToolUse hook: blocks Read/Edit/Write on patterns in `.claudeignore` files |
 | `scripts/enable-safe-yolo.sh` | Add auto-approve permissions + `auto` mode to a repo's `.claude/settings.json` |
 | `scripts/disable-safe-yolo.sh` | Remove auto-approve permissions from a repo's `.claude/settings.json` |
@@ -90,6 +92,7 @@ Always open this installed copy — not the `claude-local-starter.html` file in 
 | `settings.json` | Source of truth for `~/.claude/settings.json` |
 | `commands/` | Custom slash commands synced to `~/.claude/commands/` |
 | `skills/` | Custom skills synced to `~/.claude/skills/` |
+| `statusline-command.sh` | Status bar script — installed to `~/.claude/statusline-command.sh` on each run |
 | `claude-local-starter.html` | Visual dashboard — open the copy at `~/.claude/`, not this file |
 | `OLLAMA-SETUP-GUIDE.md` | Model comparison, prerequisites, and Ollama setup reference |
 | `LOCAL-MODEL-SWITCHOVER-DESIGN.md` | Architecture reference + sequence diagrams for the switchover system |
@@ -242,7 +245,7 @@ When Anthropic usage limits hit, this system automatically reroutes Claude Code 
 | **1. Normal session** | `claude` → wrapper checks for override file → none found → Anthropic API |
 | **2. Limit hit** | Stop hook fires → `limit-watchdog.sh` detects limit → writes `.ollama-override` + `.ollama-reset-time` + `.session-handover` (no external scheduler) |
 | **3. Ollama session** | `claude` → wrapper detects override → model picker → Ollama session → `/init-context` restores full context |
-| **4. Switchback** | User runs `claude` → wrapper checks reset time → if reset has passed: 'Switch back to Anthropic? [Y/n]' prompt → confirm → override deleted |
+| **4. Switchback** | `claude` → wrapper checks reset time → if reset has passed: 'Switch back to Anthropic? [Y/n]' prompt → confirm → override deleted. Also: SessionStart hook auto-expires stale sentinel files if the reset epoch has already passed (catches Mac app / IDE launches that bypass the terminal wrapper) |
 | **5. Back to Anthropic** | `claude` → no override → `/init-context` loads Ollama session work → full continuity |
 
 ### Setup

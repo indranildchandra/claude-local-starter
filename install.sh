@@ -271,6 +271,14 @@ if "permissions" in repo:
     if "defaultMode" in repo["permissions"] and "defaultMode" not in live["permissions"]:
         live["permissions"]["defaultMode"] = repo["permissions"]["defaultMode"]
 
+# model: always set from repo (ensures opusplan is always the default)
+if "model" in repo:
+    live["model"] = repo["model"]
+
+# statusLine: always set from repo (ensures statusline script is always wired up)
+if "statusLine" in repo:
+    live["statusLine"] = repo["statusLine"]
+
 with open(live_path, "w") as f:
     json.dump(live, f, indent=2)
 print("  merged")
@@ -282,7 +290,21 @@ else
 fi
 
 # ════════════════════════════════════════════════════════════════
-step "4 / CLAUDE.md"
+step "4 / statusline-command.sh"
+# ════════════════════════════════════════════════════════════════
+
+STATUSLINE_SRC="${SCRIPT_DIR}/statusline-command.sh"
+STATUSLINE_DST="${CLAUDE_DIR}/statusline-command.sh"
+
+if [ -f "$STATUSLINE_SRC" ]; then
+  run "cp '$STATUSLINE_SRC' '$STATUSLINE_DST' && chmod +x '$STATUSLINE_DST'"
+  ok "statusline-command.sh installed → ~/.claude/statusline-command.sh"
+else
+  warn "No statusline-command.sh in repo -- skipping"
+fi
+
+# ════════════════════════════════════════════════════════════════
+step "5 / CLAUDE.md"
 # ════════════════════════════════════════════════════════════════
 
 CLAUDE_MD="${CLAUDE_DIR}/CLAUDE.md"
@@ -300,7 +322,7 @@ else
 fi
 
 # ════════════════════════════════════════════════════════════════
-step "5 / Skills -- install via npx skills add"
+step "6 / Skills -- install via npx skills add"
 # ════════════════════════════════════════════════════════════════
 # npx skills add installs directly from the skills registry into
 # ~/.claude/skills/ without needing an interactive Claude Code session.
@@ -395,7 +417,7 @@ else
 fi
 
 # ════════════════════════════════════════════════════════════════
-step "6 / blader/humanizer skill"
+step "7 / blader/humanizer skill"
 # ════════════════════════════════════════════════════════════════
 
 HUMANIZER="${CLAUDE_DIR}/skills/humanizer"
@@ -438,7 +460,7 @@ elif [ -f "$HUMANIZER_MD" ]; then
 fi
 
 # ════════════════════════════════════════════════════════════════
-step "7 / uipro-cli (ui-ux-pro-max)"
+step "8 / uipro-cli (ui-ux-pro-max)"
 # ════════════════════════════════════════════════════════════════
 
 if command -v uipro &>/dev/null; then
@@ -454,7 +476,7 @@ info "Per-project (disabled by default): cd <project> && uipro init --ai claude"
 info "  enable-skill ui-ux-pro-max  to let Claude auto-load it when relevant"
 
 # ════════════════════════════════════════════════════════════════
-step "8 / LSP -- language server binaries"
+step "9 / LSP -- language server binaries"
 # ════════════════════════════════════════════════════════════════
 # ENABLE_LSP_TOOL is already baked into settings.json.
 # This adds the shell export as a fallback and installs binaries.

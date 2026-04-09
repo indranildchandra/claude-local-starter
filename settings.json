@@ -1,4 +1,9 @@
 {
+  "model": "opusplan",
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
   "permissions": {
     "defaultMode": "auto",
     "allow": [
@@ -28,7 +33,9 @@
   },
   "env": {
     "ENABLE_LSP_TOOL": "1",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_NO_FLICKER": "1"
   },
   "hooks": {
     "PreCompact": [
@@ -67,6 +74,10 @@
           {
             "type": "command",
             "command": "[ -f ~/.claude/.handover-ready ] && echo 'Handover marker found — run /init-context to resume your last session.' || true"
+          },
+          {
+            "type": "command",
+            "command": "reset_file=\"$HOME/.claude/.ollama-reset-time\"; override=\"$HOME/.claude/.ollama-override\"; if [ -f \"$override\" ] && [ -f \"$reset_file\" ]; then reset_epoch=$(cat \"$reset_file\" 2>/dev/null | tr -d '[:space:]'); now_epoch=$(date '+%s'); if [ -n \"$reset_epoch\" ] && [ \"$now_epoch\" -ge \"$reset_epoch\" ] 2>/dev/null; then rm -f \"$override\" \"$reset_file\" \"$HOME/.claude/.handover-ready\"; echo \"[info] Anthropic limit has reset — Ollama override cleared automatically. You are now on Anthropic.\"; fi; fi"
           }
         ]
       }
