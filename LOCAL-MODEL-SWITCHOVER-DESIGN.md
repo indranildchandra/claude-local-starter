@@ -197,28 +197,39 @@ sequenceDiagram
     end
 
     rect rgb(255, 245, 220)
-        Note over Dev,FS: PHASE 4 — Manual Switchback (user-driven, no scheduler)
-        Note over Dev,SB: User runs switch-back in terminal OR just runs claude (lazy check fires)
+        Note over Dev,FS: PHASE 4a — Auto-Cleanup (reset time has passed)
+        Note over Dev,ZSH: No prompt — claude() wrapper detects stale override and self-heals
 
-        Dev->>ZSH: $ claude (OR $ switch-back)
+        Dev->>ZSH: $ claude
         ZSH->>FS: check ~/.claude/.ollama-override
         FS-->>ZSH: found!
         ZSH->>FS: read ~/.claude/.ollama-reset-time
-        ZSH->>ZSH: current_time >= reset_epoch → time has passed
-        ZSH->>Dev: "Anthropic limits have reset. Switch back? [Y/n]"
-        Dev->>ZSH: Y
+        ZSH->>ZSH: current_time >= reset_epoch → auto-cleanup (no prompt)
+        ZSH->>FS: rm ~/.claude/.ollama-override
+        ZSH->>FS: rm ~/.claude/.ollama-reset-time
+        ZSH->>FS: rm ~/.claude/.pre-switchback (if present)
+        ZSH->>FS: rm ~/.claude/.ollama-manual (if present)
+        ZSH->>ZSH: unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN OLLAMA_MODEL
+        ZSH->>CC: launch (no override — Anthropic)
+    end
 
-        ZSH->>SB: delegate to switch-back function
-        SB->>FS: rm ~/.claude/.ollama-override
-        SB->>FS: rm ~/.claude/.ollama-reset-time
-        SB->>FS: rm ~/.claude/.pre-switchback (if present)
-        SB->>FS: read ~/.claude/.ollama-anthropic-key-backup
-        SB->>SB: restore ANTHROPIC_API_KEY in current terminal
-        loop for each project in ~/.claude/.active-projects
-            SB->>FS: touch {project}/tasks/.session-handover
-        end
-        SB->>FS: rm ~/.claude/.active-projects
-        SB->>Dev: "Switched back to Anthropic — run claude in new terminal"
+    rect rgb(255, 235, 200)
+        Note over Dev,FS: PHASE 4b — Active Ollama Session (reset time not yet passed)
+        Note over Dev,ZSH: User runs claude — wrapper shows routing prompt
+
+        Dev->>ZSH: $ claude
+        ZSH->>FS: check ~/.claude/.ollama-override
+        FS-->>ZSH: found!
+        ZSH->>FS: read ~/.claude/.ollama-reset-time
+        ZSH->>ZSH: current_time < reset_epoch (or no reset time, within 8h, or manual flag present)
+        ZSH->>Dev: "yes(Y) use Ollama  /  reset(r) switch back to Anthropic:"
+        Dev->>ZSH: r
+
+        ZSH->>FS: rm ~/.claude/.ollama-override
+        ZSH->>FS: rm ~/.claude/.ollama-reset-time
+        ZSH->>FS: rm ~/.claude/.ollama-manual (if present)
+        ZSH->>ZSH: unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN OLLAMA_MODEL
+        ZSH->>CC: launch (no override — Anthropic)
     end
 
     rect rgb(230, 245, 230)
@@ -357,29 +368,29 @@ flowchart TD
 
 ### claude() wrapper — Transparent Model Routing
 
-Shell function installed to `~/.zshrc` by `install.sh`. The developer always types `claude` — routing is invisible. Includes a lazy reset-time check: every launch inspects `.ollama-reset-time` and prompts the user if the Anthropic limit has already reset.
+Shell function installed to `~/.zshrc` by `install.sh`. The developer always types `claude` — routing is invisible. Includes a lazy reset-time check: every launch inspects `.ollama-reset-time` and either auto-cleans up silently (reset time passed) or shows a routing prompt (still within window).
 
 ```mermaid
 flowchart TD
     START([$ claude]) --> CHK{~/.claude/.ollama-override exists?}
-    CHK -- no override --> CLEANUP[Remove PWD from .active-projects]
-    CLEANUP --> NORMAL[exec claude — Anthropic]
+    CHK -- no override --> NORMAL[exec claude — Anthropic]
 
     CHK -- override found --> RST{.ollama-reset-time exists?}
-    RST -- no reset file --> WARN[Warn: no reset time\nuse switch-back manually]
-    WARN --> HC
-
     RST -- reset file found --> EPOCH{current_time >= reset_epoch?}
-    EPOCH -- time passed --> PROMPT["Prompt: Switch back to Anthropic? [Y/n]"]
-    PROMPT -- Y --> CLEAN[rm override + reset-time\nclean registry]
+    EPOCH -- time passed --> AUTOCLEAN[Auto-cleanup: rm override + reset-time + manual flag\nno prompt — silent self-heal]
+    AUTOCLEAN --> NORMAL
+
+    RST -- no reset file --> AGECHECK{.ollama-manual present?\nor override age < 8h?}
+    EPOCH -- not yet --> AGECHECK
+
+    AGECHECK -- no manual AND > 8h old --> AUTOCLEAN
+    AGECHECK -- manual flag OR recent --> PROMPT["yes(Y) use Ollama  /  reset(r) switch back to Anthropic:"]
+
+    PROMPT -- r / reset --> CLEAN[rm override + reset-time + manual flag\nunset env vars]
     CLEAN --> NORMAL
-    PROMPT -- N --> HC
-
-    EPOCH -- not yet --> HC[Ollama health check\ncurl /api/tags]
-    HC -- not running --> WARN2[Warn: Ollama not running\nFall back? Y/n]
-    WARN2 -- Y --> NORMAL
-    WARN2 -- N --> ABORT([abort — start Ollama first])
-
+    PROMPT -- Y / Enter default → use Ollama --> HC[Ollama health check\ncurl /api/tags]
+    HC -- not running --> FALLBACK[fallback — launch Anthropic]
+    FALLBACK --> NORMAL
     HC -- running --> SRC[source .ollama-override]
     SRC --> PICK[_claude_pick_model\ninteractive model menu]
     PICK --> LAUNCH["Routing to Ollama ($OLLAMA_MODEL)"]

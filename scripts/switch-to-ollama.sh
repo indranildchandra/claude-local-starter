@@ -15,11 +15,11 @@ OLLAMA_DEFAULT_MODEL="${OLLAMA_DEFAULT_MODEL:-kimi-k2.5:cloud}"
 
 # --- Health check ---
 if ! curl -sf "${OLLAMA_HOST}/api/tags" >/dev/null 2>&1; then
-  echo "❌ Ollama is not running at ${OLLAMA_HOST}."
+  echo "Ollama is not running at ${OLLAMA_HOST}."
   echo "   Start it with: ollama serve"
   exit 1
 fi
-echo "✅ Ollama is running."
+echo "Ollama is running."
 
 # --- Model selection ---
 ollama_model="${OLLAMA_DEFAULT_MODEL}"
@@ -108,11 +108,13 @@ except Exception:
 " 2>/dev/null) || reset_epoch=""
   if [ -n "$reset_epoch" ]; then
     printf '%s\n' "$reset_epoch" > "$CLAUDE_DIR/.ollama-reset-time"
-    echo "✅ Reset time set: $(date -r "$reset_epoch" '+%H:%M' 2>/dev/null || date -d "@$reset_epoch" '+%H:%M' 2>/dev/null || echo "$reset_epoch")"
+    echo "Reset time set: $(date -r "$reset_epoch" '+%H:%M' 2>/dev/null || date -d "@$reset_epoch" '+%H:%M' 2>/dev/null || echo "$reset_epoch")"
   fi
 fi
 
+touch "$CLAUDE_DIR/.ollama-manual"
+
 echo ""
-echo "⚡ Ollama override active (model: $ollama_model)."
-echo "   Run: claude (the wrapper will route to Ollama automatically)"
-echo "   To switch back: switch-back  OR  source ~/.claude/scripts/switch-to-anthropic.sh"
+echo "Ollama override active (model: $ollama_model)."
+echo "Run: claude (the wrapper will route to Ollama automatically)"
+echo "To switch back: switch-back"

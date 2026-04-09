@@ -144,4 +144,6 @@ print(int(reset.timestamp()))
 source ~/Documents/code/incheon/claude-local-starter/scripts/reset-to-anthropic.sh
 ```
 
+4. **`.ollama-manual` flag** — `switch-to-ollama.sh` now writes `~/.claude/.ollama-manual` when you manually activate Ollama. The `claude()` wrapper uses this flag to distinguish manual sessions from automatic limit-triggered ones. Automatic switches with no reset time are auto-cleaned after 8 hours; manual sessions are not auto-expired — the `.ollama-manual` flag suppresses the 8h cleanup so intentional Ollama sessions persist until you explicitly type `r` at the routing prompt or run `switch-back`.
+
 **Fix condition:** Fully mitigated for the common cases. Residual gap: if both `.ollama-override` and `.ollama-reset-time` exist but the reset time file is corrupted/missing, the SessionStart hook won't fire (it requires both files). In that case, run the reset script manually.

@@ -6,7 +6,7 @@
 # FALLBACK:  source this file instead of running it:
 #            source ~/.claude/scripts/switch-to-anthropic.sh
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
-  echo "ℹ  Tip: run 'switch-back' in your terminal instead — it restores env vars in the current session."
+  echo "Tip: run 'switch-back' in your terminal instead -- it restores env vars in the current session."
   echo "   Or source this file: source ~/.claude/scripts/switch-to-anthropic.sh"
 fi
 
@@ -28,7 +28,8 @@ fi
 
 rm -f "$HOME/.claude/.ollama-override" \
       "$HOME/.claude/.ollama-reset-time" \
-      "$HOME/.claude/.pre-switchback"
+      "$HOME/.claude/.pre-switchback" \
+      "$HOME/.claude/.ollama-manual"
 
 # Notify
 if command -v osascript &>/dev/null; then
@@ -37,4 +38,4 @@ elif command -v notify-send &>/dev/null; then
   notify-send "Claude Code" "Switched back to Anthropic." 2>/dev/null || true
 fi
 
-echo "✅ Switched back to Anthropic. Run: claude"
+echo "Switched back to Anthropic. Run: claude"
