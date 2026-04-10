@@ -64,7 +64,18 @@ if [ -n "$five_pct" ]; then
   if [ "$five_pct_fmt" -ge 80 ]; then pct_color="$YELLOW"; else pct_color="$GREEN"; fi
   if [ -n "$five_resets" ]; then
     five_time=$(date -r "$five_resets" "+%H:%M" 2>/dev/null || date -d "@$five_resets" "+%H:%M" 2>/dev/null)
-    rate_str="${rate_str}${DIM} | ${RESET}${DIM}5h:${RESET} ${pct_color}${five_pct_fmt}%${RESET} ${DIM}resets${RESET} ${CYAN}${five_time}${RESET}"
+
+    # Compute % of 5h window elapsed so token% vs time% can be compared
+    now_ts=$(date +%s)
+    five_window=18000
+    five_start=$((five_resets - five_window))
+    five_elapsed=$(( (now_ts - five_start) * 100 / five_window ))
+    [ "$five_elapsed" -lt 0 ] && five_elapsed=0
+    [ "$five_elapsed" -gt 100 ] && five_elapsed=100
+    # Colour by threshold (matches other fields): ≥80% yellow, else green
+    if [ "$five_elapsed" -ge 80 ]; then time_color="$YELLOW"; else time_color="$GREEN"; fi
+
+    rate_str="${rate_str}${DIM} | ${RESET}${DIM}5h:${RESET} ${pct_color}${five_pct_fmt}%${RESET} ${DIM}resets${RESET} ${CYAN}${five_time}${RESET} ${DIM}(t:${RESET}${time_color}${five_elapsed}% of 5h${RESET}${DIM})${RESET}"
   else
     rate_str="${rate_str}${DIM} | ${RESET}${DIM}5h:${RESET} ${pct_color}${five_pct_fmt}%${RESET}"
   fi
