@@ -66,6 +66,16 @@
 - If context usage exceeds 50%, spawn a fresh subagent rather than continuing in the main session
 - If context usage exceeds 70%, run `/log-context` then `/compact` immediately before proceeding
 
+### 10. First-Principles Debugging
+- Before jumping to a fix, **name the mechanism**: how is this feature actually supposed to work end-to-end? (e.g. "skills are filesystem-discovered from `~/.claude/skills/` at startup")
+- **Enumerate all assumptions** and verify each one independently — never assume something is installed, sourced, or running
+- **Build a gap inventory**: what exists vs. what should exist? A missing thing is different from a misconfigured thing
+- **Follow the data path**: trace the signal from source → installer → destination → consumer; find exactly where it breaks
+- **Distinguish by-design from broken**: routing to a secondary location by design is not a bug — activation of that location is the fix
+- **Never fix symptoms** — find the root node in the causal chain; fixing downstream effects wastes time
+- **Verify the fix closes the gap**: after any fix, re-check the original mechanism to confirm the signal now flows end-to-end
+- Apply this to new tasks too: before implementing, reason through "what must be true for this to work?" and validate each precondition
+
 ## Task Management
 
 1. **Plan First**: Write plan to `tasks/todo.md` with checkable items

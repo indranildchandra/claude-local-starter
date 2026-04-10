@@ -6,7 +6,7 @@ CYAN=$'\033[36m'
 GREEN=$'\033[32m'
 YELLOW=$'\033[33m'
 MAGENTA=$'\033[38;5;75m'
-DIM=$'\033[2m'
+WHITE=$'\033[97m'
 BOLD=$'\033[1m'
 RESET=$'\033[0m'
 
@@ -32,7 +32,7 @@ if [ -n "$used" ]; then
   for i in $(seq 1 10); do
     if [ "$i" -le "$filled" ]; then bar="${bar}█"; else bar="${bar}░"; fi
   done
-  ctx_str="${DIM} | ${RESET}${bar_color}[${bar} ${pct}%]${RESET}"
+  ctx_str=" ${WHITE}|${RESET} ${bar_color}[${bar} ${pct}%]${RESET}"
 else
   ctx_str=""
 fi
@@ -44,7 +44,7 @@ if [ -n "$effort" ]; then
     medium) effort_color="$GREEN" ;;
     *)      effort_color="$CYAN" ;;
   esac
-  effort_str="${DIM} | ${RESET}${DIM}effort:${RESET} ${effort_color}${effort}${RESET}"
+  effort_str=" ${WHITE}| effort:${RESET} ${effort_color}${effort}${RESET}"
 else
   effort_str=""
 fi
@@ -63,7 +63,9 @@ if [ -n "$five_pct" ]; then
   five_pct_fmt=$(printf "%.0f" "$five_pct")
   if [ "$five_pct_fmt" -ge 80 ]; then pct_color="$YELLOW"; else pct_color="$GREEN"; fi
   if [ -n "$five_resets" ]; then
-    five_time=$(date -r "$five_resets" "+%H:%M" 2>/dev/null || date -d "@$five_resets" "+%H:%M" 2>/dev/null)
+    # 12h time, am/pm lowercase (no day for 5h window)
+    five_time=$(date -r "$five_resets" "+%I:%M%p" 2>/dev/null || date -d "@$five_resets" "+%I:%M%p" 2>/dev/null)
+    five_time=$(echo "$five_time" | tr '[:upper:]' '[:lower:]')
 
     # Compute % of 5h window elapsed so token% vs time% can be compared
     now_ts=$(date +%s)
@@ -75,9 +77,9 @@ if [ -n "$five_pct" ]; then
     # Colour by threshold (matches other fields): ≥80% yellow, else green
     if [ "$five_elapsed" -ge 80 ]; then time_color="$YELLOW"; else time_color="$GREEN"; fi
 
-    rate_str="${rate_str}${DIM} | ${RESET}${DIM}5h:${RESET} ${pct_color}${five_pct_fmt}%${RESET} ${DIM}resets${RESET} ${CYAN}${five_time}${RESET} ${DIM}(t:${RESET}${time_color}${five_elapsed}% of 5h${RESET}${DIM})${RESET}"
+    rate_str="${rate_str} ${WHITE}| 5h-window:${RESET} ${pct_color}${five_pct_fmt}% used,${RESET} ${WHITE}resets${RESET} ${CYAN}${five_time}${RESET} (${time_color}${five_elapsed}%${RESET} of 5h passed)"
   else
-    rate_str="${rate_str}${DIM} | ${RESET}${DIM}5h:${RESET} ${pct_color}${five_pct_fmt}%${RESET}"
+    rate_str="${rate_str} ${WHITE}| 5h-window:${RESET} ${pct_color}${five_pct_fmt}% used${RESET}"
   fi
 fi
 
@@ -85,10 +87,14 @@ if [ -n "$week_pct" ]; then
   week_pct_fmt=$(printf "%.0f" "$week_pct")
   if [ "$week_pct_fmt" -ge 80 ]; then pct_color="$YELLOW"; else pct_color="$GREEN"; fi
   if [ -n "$week_resets" ]; then
-    week_time=$(date -r "$week_resets" "+%a %H:%M" 2>/dev/null || date -d "@$week_resets" "+%a %H:%M" 2>/dev/null)
-    rate_str="${rate_str}${DIM} | ${RESET}${DIM}7d:${RESET} ${pct_color}${week_pct_fmt}%${RESET} ${DIM}resets${RESET} ${CYAN}${week_time}${RESET}"
+    # Day keeps its casing (Thu), only time portion lowercased (am/pm)
+    week_day=$(date -r "$week_resets" "+%a" 2>/dev/null || date -d "@$week_resets" "+%a" 2>/dev/null)
+    week_hm=$(date -r "$week_resets" "+%I:%M%p" 2>/dev/null || date -d "@$week_resets" "+%I:%M%p" 2>/dev/null)
+    week_hm=$(echo "$week_hm" | tr '[:upper:]' '[:lower:]')
+    week_time="${week_day} ${week_hm}"
+    rate_str="${rate_str} ${WHITE}| 7d-window:${RESET} ${pct_color}${week_pct_fmt}%${RESET} ${WHITE}resets${RESET} ${CYAN}${week_time}${RESET}"
   else
-    rate_str="${rate_str}${DIM} | ${RESET}${DIM}7d:${RESET} ${pct_color}${week_pct_fmt}%${RESET}"
+    rate_str="${rate_str} ${WHITE}| 7d-window:${RESET} ${pct_color}${week_pct_fmt}%${RESET}"
   fi
 fi
 
