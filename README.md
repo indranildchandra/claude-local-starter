@@ -96,6 +96,7 @@ Always open this installed copy — not the `claude-local-starter.html` file in 
 | `claude-local-starter.html` | Visual dashboard — open the copy at `~/.claude/`, not this file |
 | `OLLAMA-SETUP-GUIDE.md` | Model comparison, prerequisites, and Ollama setup reference |
 | `LOCAL-MODEL-SWITCHOVER-DESIGN.md` | Architecture reference + sequence diagrams for the switchover system |
+| `CHEATSHEET.md` | Quick reference — keyboard shortcuts, slash commands, CLI flags, hooks, env vars |
 
 ## Shell functions (available after install)
 
@@ -270,6 +271,12 @@ See [`LOCAL-MODEL-SWITCHOVER-DESIGN.md`](LOCAL-MODEL-SWITCHOVER-DESIGN.md) for f
 | `qwen3:4b` | 2.5 GB | 128K | Compact local option |
 | `qwen3:30b` | 20+ GB | 128K | Best local reasoning |
 | `qwen2.5-coder:7b` | 4.7 GB | 32K | Code generation on constrained machines |
+
+---
+
+## Quick reference
+
+See [`CHEATSHEET.md`](CHEATSHEET.md) for a concise reference of keyboard shortcuts, slash commands, CLI flags, hooks, environment variables, MCP setup, and common workflows. Useful for getting started or as a day-to-day lookup.
 
 ---
 
