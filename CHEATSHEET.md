@@ -13,6 +13,7 @@
 | `Ctrl+O` | Toggle verbose / transcript mode |
 | `Ctrl+R` | Reverse search history |
 | `Ctrl+B` | Background the running task |
+| `Esc Esc` | Rewind last turn or summarize |
 | `Ctrl+S` | Stash current prompt (save for later) |
 | `Ctrl+G` / `Ctrl+X Ctrl+E` | Open prompt in external editor |
 | `Ctrl+X Ctrl+K` | Kill all background agents |
@@ -194,6 +195,7 @@ Hooks run shell commands in response to Claude Code events. Configured in `setti
 ```bash
 claude mcp add --scope project <name> <command>                # local process (stdio)
 claude mcp add --transport http --scope user <name> <url>      # remote HTTP
+claude mcp add --transport sse --scope user <name> <url>       # remote SSE
 claude mcp list                                                # list all servers
 claude mcp serve                                               # run Claude Code as an MCP server
 ```
@@ -228,14 +230,19 @@ claude mcp serve                                               # run Claude Code
 | `Explore` | Haiku (fast) | Read-only research and codebase exploration |
 | `Plan` | Opus | Design and architecture planning |
 | `general-purpose` | Configurable | Full tools, complex multi-step tasks |
+| `Bash` | — | Terminal execution, isolated context |
 
 ### Custom Skills & Commands
 ```
-skills/<name>/SKILL.md      ← skill definition (repo)
-commands/<name>.md          ← slash command definition (repo)
+skills/<name>/SKILL.md      ← skill definition (repo source of truth)
+commands/<name>.md          ← slash command definition (repo source of truth)
+
+.claude/skills/             ← project-scoped skills (runtime)
+~/.claude/skills/           ← personal skills, all projects (runtime)
 ```
 - Set `disable-model-invocation: true` in `SKILL.md` to prevent the skill from spawning sub-models (reduces token cost).
 - Use `$ARGUMENTS` as a placeholder for user-provided input in commands.
+- Ship executables alongside a skill via `plugin bin/`.
 
 ---
 
@@ -277,7 +284,7 @@ Or press `Shift+Tab` twice from Normal mode. Claude reads and plans but makes no
 ### Thinking & Effort
 - **`Meta+T`** toggles extended thinking.
 - Say **"ultrathink"** in your prompt for maximum effort on one turn.
-- `/effort` or `--effort` sets the session default: `low · medium · high · max`
+- `/effort` or `--effort` sets the session default: `○ low  •◐ medium  ●  high  ★ max`
 
 ### Context Management
 - `/compact [focus]` compresses context; add a focus hint to guide what's kept.
