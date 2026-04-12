@@ -20,7 +20,7 @@
 ### Mode & Model
 | Shortcut | Action |
 |----------|--------|
-| `Shift+Tab` | Cycle permission modes (Normal → Auto-accept → Plan) |
+| `Shift+Tab` | Cycle permission modes (Edit → Auto-accept → Plan) |
 | `Meta+P` | Open model picker (`Meta` = Cmd on Mac, Alt on Linux/Win) |
 | `Meta+T` | Toggle extended thinking |
 | `Meta+O` | Toggle fast mode |
@@ -41,11 +41,12 @@
 | Command | Action |
 |---------|--------|
 | `/clear` | Clear conversation history |
-| `/compact [focus]` | Compress context (optionally guide what to keep) |
+| `/compact [compaction instruction]` | Compress context (optionally guide what to keep) |
 | `/resume` | Resume or switch to a previous session |
 | `/rewind` | Roll back conversation + code to a prior checkpoint |
-| `/cost` | Show token usage and cost breakdown |
 | `/export` | Export conversation |
+| `/status` | Show usage statistics and activity |
+| `/cost` | Show token usage and cost breakdown (useful in API-plan mode) |
 
 ### Config
 | Command | Action |
@@ -81,7 +82,7 @@ claude                          # interactive mode
 claude "prompt"                 # start with a prompt
 claude -p "prompt"              # headless (non-interactive)
 claude -c                       # continue last session
-claude -r "session-name"        # resume session by name
+claude -r "session-name"        # resume session by name / session id
 claude update                   # update Claude Code
 ```
 
@@ -105,7 +106,7 @@ claude update                   # update Claude Code
 ```
 /etc/claude-code/managed-settings.d/   ← org policy (highest)
 ~/.claude/settings.json                ← user (all projects)
-.claude/settings.json                  ← project (team-shared, VCS)
+.claude/settings.json                  ← project (team-shared, version-controlled)
 .claude/settings.local.json            ← local only (gitignored)
 ```
 
@@ -116,11 +117,11 @@ claude update                   # update Claude Code
 | `ANTHROPIC_MODEL` | Model override |
 | `CLAUDE_CODE_EFFORT_LEVEL` | `low` / `medium` / `high` / `max` / `auto` |
 | `MAX_THINKING_TOKENS` | Max thinking budget; `0` = off |
+| `CLAUDE_CODE_DISABLE_1M_CONTEXT` | Disable 1M context window |
 | `CLAUDE_ENABLE_STREAM_WATCHDOG=1` | Enable streaming idle watchdog |
 | `CLAUDE_STREAM_IDLE_TIMEOUT_MS` | Watchdog timeout in ms (default 90000; requires watchdog enabled) |
 | `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` | Disable auto-memory |
 | `CLAUDE_CODE_AUTO_MEMORY_PATH` | Override auto-memory directory |
-| `CLAUDE_CODE_DISABLE_1M_CONTEXT` | Disable 1M context window |
 
 ---
 
@@ -131,7 +132,7 @@ claude update                   # update Claude Code
 |------|-------|
 | `/etc/claude-code/` | Org-wide (managed) |
 | `~/.claude/CLAUDE.md` | Personal (all projects) |
-| `./CLAUDE.md` | Project (team-shared, in VCS) |
+| `./CLAUDE.md` | Project (team-shared, version-controlled) |
 
 ### Rules Files
 ```
@@ -191,10 +192,10 @@ Hooks run shell commands in response to Claude Code events. Configured in `setti
 
 ### Adding Servers
 ```bash
-claude mcp add --scope project <name> <command>   # local process (stdio)
-claude mcp add --transport http --scope user <name> <url>  # remote HTTP
-claude mcp list                                   # list all servers
-claude mcp serve                                  # run Claude Code as an MCP server
+claude mcp add --scope project <name> <command>                # local process (stdio)
+claude mcp add --transport http --scope user <name> <url>      # remote HTTP
+claude mcp list                                                # list all servers
+claude mcp serve                                               # run Claude Code as an MCP server
 ```
 
 ### Scopes
@@ -243,10 +244,10 @@ commands/<name>.md          ← slash command definition (repo)
 ### Permission Modes
 | Mode | Behaviour |
 |------|-----------|
-| Default | Prompts for approval on sensitive operations |
-| Auto-accept | Accepts most operations (use with caution) |
+| Edit | Prompts for approval on sensitive operations |
+| Auto | Accepts most operations (use with caution) |
 | Plan | Read-only; no writes or executions |
-| `--dangerously-skip-permissions` | Bypasses all prompts (CI / trusted scripts only) |
+| `--dangerously-skip-permissions` | Bypasses all prompts (CI / trusted scripts only) --> avoid! |
 
 Cycle modes with `Shift+Tab` or start with `--permission-mode plan`.
 
