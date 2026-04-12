@@ -193,9 +193,9 @@ Hooks run shell commands in response to Claude Code events. Configured in `setti
 
 ### Adding Servers
 ```bash
-claude mcp add --scope project <name> <command>                # local process (stdio)
-claude mcp add --transport http --scope user <name> <url>      # remote HTTP
-claude mcp add --transport sse --scope user <name> <url>       # remote SSE
+claude mcp add --transport stdio --scope project <name> <command>   # local process
+claude mcp add --transport http --scope user <name> <url>           # remote HTTP
+claude mcp add --transport sse --scope user <name> <url>            # remote SSE
 claude mcp list                                                # list all servers
 claude mcp serve                                               # run Claude Code as an MCP server
 ```
@@ -284,7 +284,7 @@ Or press `Shift+Tab` twice from Normal mode. Claude reads and plans but makes no
 ### Thinking & Effort
 - **`Meta+T`** toggles extended thinking.
 - Say **"ultrathink"** in your prompt for maximum effort on one turn.
-- `/effort` or `--effort` sets the session default: `○ low  •◐ medium  ●  high  ★ max`
+- `/effort` or `--effort` sets the session default: `○ low  ◐ medium  ●  high  ★ max`
 
 ### Context Management
 - `/compact [focus]` compresses context; add a focus hint to guide what's kept.
