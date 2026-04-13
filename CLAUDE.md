@@ -116,6 +116,8 @@ Place skill directories under `skills/` — each needs a `SKILL.md`. The install
 | `aidlc-tracking` | Canonical formats for all project tracking files |
 | `review-council` | Multi-persona architecture review council |
 | `codereview-roasted` | Linus-style opinionated code review — data structures first, 7 scenarios, no flattery |
+| `frontend-design-review` | Five-step surgical UI audit — visual hierarchy, typography, whitespace, color/contrast, production quality |
+| `karpathy-guidelines` | Coding behaviour guardrails — think before coding, simplicity first, surgical changes, goal-driven execution |
 
 ### Adding Custom Commands
 
