@@ -224,7 +224,7 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 |-------|-------------|
 | `aidlc-tracking` | Canonical formats for all project tracking files — `plan.md`, `todo.md`, `tracker.md`, `lessons.md`, `changelog.md`, `design-review.md`. Exists so Claude never invents its own structure for these files and every project looks the same. |
 | `review-council` | Spins up a multi-persona review council for architecture and design decisions. 20 expert personas, parallel subagent analysis, structured debate, converges on a verdict with your input. Heavy but useful for decisions that actually matter. |
-| `frontend-design-review` | Five-step surgical audit for UI designs: visual hierarchy, typography, whitespace, color/contrast, and production quality diagnosis. Each step is a focused prompt in its own file. Attach a screenshot, get specific ranked fixes. Provisional — context-off by default. |
+| `frontend-design-review` | Five-step surgical audit for UI designs: visual hierarchy, typography, whitespace, color/contrast, and production quality diagnosis. Each step is a focused prompt in its own file. Attach a screenshot, get specific ranked fixes. |
 
 **Slash commands**
 
