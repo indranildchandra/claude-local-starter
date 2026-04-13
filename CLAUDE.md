@@ -130,6 +130,7 @@ Place `.md` files under `commands/` — they sync to `~/.claude/commands/` and b
 | `/init-repo` | Bootstrap gitnexus + CLAUDE.md + AIDLC tracking files for a new repo |
 | `/design-review` | Trigger the `review-council` skill for a full architectural review |
 | `/log-context` | Write a pre-compact session snapshot to `tasks/tracker.md` |
+| `/frontend-design-review` | Five-step visual design audit — hierarchy, typography, spacing, color, production quality |
 
 ---
 

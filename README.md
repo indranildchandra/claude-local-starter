@@ -20,6 +20,7 @@ Think of it as the all-stars setup — not everything available, just the things
 
 | Component | Details |
 |-----------|---------|
+| `CHEATSHEET.md` | Quick-reference for keyboard shortcuts, slash commands, CLI flags, hooks, MCP setup, and common workflows |
 | `~/.claude/CLAUDE.md` | Global Claude Code behaviour (from `claude-md-master/CLAUDE.md`) |
 | `~/.claude/settings.json` | Plugins, env vars, MCP servers, hooks (deep-merged) |
 | `~/.claude/statusline-command.sh` | Status bar script — shows path, model, context %, effort level, 5h/7d rate limit usage + time-elapsed % of each window (green/yellow threshold coloring) |
