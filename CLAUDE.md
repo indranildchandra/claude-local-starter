@@ -209,9 +209,10 @@ Place `.md` files under `commands/` — they sync to `~/.claude/commands/` and b
 3. **Verify Plan**: Check in before starting implementation
 4. **Track Progress**: Mark items complete as you go in `tasks/todo.md`
 5. **Explain Changes**: High-level summary at each step
-6. **Log to audit/changelog.md**: Append what changed after implementation (post-hook)
-7. **Log to tasks/tracker.md**: Append task completion entry after each task (post-hook)
-8. **Capture Lessons**: Update `tasks/lessons.md` after corrections
+6. **Simplify**: Run `/simplify` on the changed code before logging — reviews the delta for reuse, quality, and efficiency; fixes issues found
+7. **Log to audit/changelog.md**: Append what changed after implementation (post-hook)
+8. **Log to tasks/tracker.md**: Append task completion entry after each task (post-hook)
+9. **Capture Lessons**: Update `tasks/lessons.md` after corrections
 
 ## Tracking Discipline
 
