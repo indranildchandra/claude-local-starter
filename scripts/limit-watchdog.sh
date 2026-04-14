@@ -11,9 +11,14 @@ set -euo pipefail
 _conf="$HOME/.claude/ollama.conf"
 [ -f "$_conf" ] && source "$_conf" 2>/dev/null
 
-# Fall back to built-in pattern if user hasn't overridden
-LIMIT_PATTERN="${LIMIT_PATTERN:-(hit your limit|out of free messages|usage limit|at capacity|exceeded.*limit|limit.*exceeded|resets [0-9]+:[0-9]+(am|pm))}"
+# Fall back to built-in pattern if user hasn't overridden.
+# Intentionally narrow — broad terms like "usage limit" / "at capacity" produce false positives
+# in normal Claude conversations. Only match phrases specific to Anthropic rate-limit messages.
+LIMIT_PATTERN="${LIMIT_PATTERN:-(hit your limit|out of free messages|rate.?limit.*exceeded|exceeded.*rate.?limit|resets [0-9]+:[0-9]+(am|pm))}"
 OLLAMA_HOST="${OLLAMA_HOST:-http://localhost:11434}"
+# Text-based detection (SECONDARY) is opt-in — PRIMARY (history.jsonl) is reliable and sufficient.
+# Set ENABLE_TEXT_DETECTION=true in ~/.claude/ollama.conf to also match on last_assistant_message.
+ENABLE_TEXT_DETECTION="${ENABLE_TEXT_DETECTION:-false}"
 HISTORY_FILE="$HOME/.claude/history.jsonl"
 
 # --- Parse stdin JSON ---
@@ -107,25 +112,20 @@ with open(hfile) as f:
 " 2>/dev/null | tail -1) || cwd=""
 fi
 
-# --- SECONDARY DETECTION: last_assistant_message text pattern (fast, O(1), no file I/O) ---
-if [ "$limit_detected" -eq 0 ] && [ -n "${last_assistant_message:-}" ]; then
+# --- SECONDARY DETECTION: last_assistant_message text pattern (opt-in via ENABLE_TEXT_DETECTION) ---
+# Disabled by default — broad text patterns produce false positives in normal conversation.
+# Enable in ~/.claude/ollama.conf: ENABLE_TEXT_DETECTION=true
+if [ "$limit_detected" -eq 0 ] && [ "$ENABLE_TEXT_DETECTION" = "true" ] && [ -n "${last_assistant_message:-}" ]; then
   if echo "$last_assistant_message" | grep -qiE "$LIMIT_PATTERN"; then
     limit_detected=1
     reset_time=$(echo "$last_assistant_message" | grep -oiE '(resets? [0-9]+:[0-9]+(am|pm)|until [0-9]+:[0-9]+ ?(am|pm))' | head -1 | sed -E 's/(resets? |until )//i' || true)
   fi
 fi
 
-# --- TERTIARY DETECTION: grep transcript file (fallback, file I/O) ---
-if [ "$limit_detected" -eq 0 ]; then
-  if [ -z "${transcript_path:-}" ] || [ ! -f "$transcript_path" ]; then
-    exit 0
-  fi
-  if ! grep -qiE "$LIMIT_PATTERN" "$transcript_path"; then
-    exit 0
-  fi
-  limit_detected=1
-  reset_time=$(grep -oiE '(resets? [0-9]+:[0-9]+(am|pm)|until [0-9]+:[0-9]+ ?(am|pm))' "$transcript_path" | head -1 | sed -E 's/(resets? |until )//i' || true)
-fi
+# TERTIARY DETECTION (full transcript grep) removed — it matched normal conversation content
+# (e.g. Claude discussing rate limits in code reviews) and was the primary source of false positives.
+# PRIMARY detection via history.jsonl is deterministic and sufficient for all genuine limit events.
+[ "$limit_detected" -eq 0 ] && exit 0
 
 # --- Write override file ---
 # OLLAMA_MODEL: use ~/.claude/.ollama-model if set, else default to kimi-k2.5:cloud
