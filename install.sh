@@ -1046,9 +1046,9 @@ claude() {
     override_age=$(( now_epoch - $(date -r "$override" '+%s' 2>/dev/null || echo "$now_epoch") ))
 
     # Auto-cleanup if: reset time passed (valid epoch),
-    # OR no reset time AND override is >8 hours old AND switch was automatic (no manual flag)
+    # OR no reset time AND override is >5 hours old AND switch was automatic (no manual flag)
     if { [[ "$reset_epoch" =~ ^[0-9]+$ ]] && (( now_epoch >= reset_epoch )); } || \
-       { [[ -z "$reset_epoch" ]] && (( override_age > 28800 )) && [[ ! -f "$manual_flag" ]]; }; then
+       { [[ -z "$reset_epoch" ]] && (( override_age > 18000 )) && [[ ! -f "$manual_flag" ]]; }; then
       # Limit has cleared — clean up automatically, no prompt needed
       if [[ "$reset_epoch" =~ ^[0-9]+$ ]]; then
         reset_human=$(date -r "$reset_epoch" '+%H:%M' 2>/dev/null \
@@ -1056,7 +1056,7 @@ claude() {
           || echo "epoch $reset_epoch")
         echo "Anthropic limit reset (was due: $reset_human). Switching back automatically."
       else
-        echo "Ollama override is over 8 hours old with no reset time. Switching back automatically."
+        echo "Ollama override is over 5 hours old with no reset time. Switching back automatically."
       fi
       rm -f "$override" "$reset_file" "$HOME/.claude/.pre-switchback" "$manual_flag"
       if [ -f "$registry" ]; then

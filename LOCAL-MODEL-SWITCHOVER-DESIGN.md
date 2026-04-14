@@ -221,7 +221,7 @@ sequenceDiagram
         ZSH->>FS: check ~/.claude/.ollama-override
         FS-->>ZSH: found!
         ZSH->>FS: read ~/.claude/.ollama-reset-time
-        ZSH->>ZSH: current_time < reset_epoch (or no reset time, within 8h, or manual flag present)
+        ZSH->>ZSH: current_time < reset_epoch (or no reset time, within 5h, or manual flag present)
         ZSH->>Dev: "yes(Y) use Ollama  /  reset(r) switch back to Anthropic:"
         Dev->>ZSH: r
 
@@ -380,10 +380,10 @@ flowchart TD
     EPOCH -- time passed --> AUTOCLEAN[Auto-cleanup: rm override + reset-time + manual flag\nno prompt — silent self-heal]
     AUTOCLEAN --> NORMAL
 
-    RST -- no reset file --> AGECHECK{.ollama-manual present?\nor override age < 8h?}
+    RST -- no reset file --> AGECHECK{.ollama-manual present?\nor override age < 5h?}
     EPOCH -- not yet --> AGECHECK
 
-    AGECHECK -- no manual AND > 8h old --> AUTOCLEAN
+    AGECHECK -- no manual AND > 5h old --> AUTOCLEAN
     AGECHECK -- manual flag OR recent --> PROMPT["yes(Y) use Ollama  /  reset(r) switch back to Anthropic:"]
 
     PROMPT -- r / reset --> CLEAN[rm override + reset-time + manual flag\nunset env vars]
