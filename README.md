@@ -20,11 +20,12 @@ Think of it as the all-stars setup — not everything available, just the things
 
 | Component | Details |
 |-----------|---------|
+| `CHEATSHEET.md` | Quick-reference for keyboard shortcuts, slash commands, CLI flags, hooks, MCP setup, and common workflows |
 | `~/.claude/CLAUDE.md` | Global Claude Code behaviour (from `claude-md-master/CLAUDE.md`) |
 | `~/.claude/settings.json` | Plugins, env vars, MCP servers, hooks (deep-merged) |
 | `~/.claude/statusline-command.sh` | Status bar script — shows path, model, context %, effort level, 5h/7d rate limit usage + time-elapsed % of each window (green/yellow threshold coloring) |
-| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, codereview-roasted, aidlc-tracking, review-council |
-| `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context` |
+| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, codereview-roasted, aidlc-tracking, review-council, frontend-design-review, karpathy-guidelines |
+| `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context`, `/frontend-design-review`, `/switch-local-model-on`, `/switch-local-model-off`, `/init-context` |
 | LSP binaries | typescript-language-server (enabled), pyright (enabled), gopls, rust-analyzer, jdtls |
 | Browser automation | `@playwright/cli` with skills + Chromium |
 | MCP servers | context7 (enabled by default), gitnexus, context-mode, claude-mem, filesystem, supabase, vercel |
@@ -174,6 +175,8 @@ Synced to `~/.claude/skills/` on install.
 |-------|--------|
 | `aidlc-tracking` | bundled (this repo) |
 | `review-council` | bundled (this repo) |
+| `frontend-design-review` | bundled (this repo) |
+| `karpathy-guidelines` | [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) |
 | `humanizer` | [blader/humanizer](https://github.com/blader/humanizer) |
 | `codereview-roasted` | [OpenHands/extensions](https://github.com/OpenHands/extensions/tree/main/skills/codereview-roasted) |
 | `playwright-cli` | [microsoft/playwright-cli](https://github.com/microsoft/playwright-cli) |
@@ -221,6 +224,7 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 |-------|-------------|
 | `aidlc-tracking` | Canonical formats for all project tracking files — `plan.md`, `todo.md`, `tracker.md`, `lessons.md`, `changelog.md`, `design-review.md`. Exists so Claude never invents its own structure for these files and every project looks the same. |
 | `review-council` | Spins up a multi-persona review council for architecture and design decisions. 20 expert personas, parallel subagent analysis, structured debate, converges on a verdict with your input. Heavy but useful for decisions that actually matter. |
+| `frontend-design-review` | Five-step surgical audit for UI designs: visual hierarchy, typography, whitespace, color/contrast, and production quality diagnosis. Each step is a focused prompt in its own file. Attach a screenshot, get specific ranked fixes. |
 
 **Slash commands**
 
@@ -229,6 +233,7 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 | `/init-repo` | Bootstraps a project from scratch — runs gitnexus analysis, writes a `CLAUDE.md` tailored to the codebase, and scaffolds all AIDLC tracking files in one shot. Run once per new repo. |
 | `/design-review` | Triggers the `review-council` skill for a full architectural review. Pass a scope (file, module, or decision) or leave blank to review the whole repo. |
 | `/log-context` | Writes a detailed session snapshot to `tasks/tracker.md` before compaction. Preserves enough context that a cold-start in the next session doesn't lose the thread. |
+| `/frontend-design-review` | Five-step visual design audit: hierarchy, typography, spacing, color, and production quality. Attach a screenshot and get specific, ranked fixes. |
 | `/switch-local-model-on` | Manually activate Ollama routing for the current session |
 | `/switch-local-model-off` | Deactivate Ollama routing and switch back to Anthropic |
 | `/init-context` | Load session handover context on resume |
