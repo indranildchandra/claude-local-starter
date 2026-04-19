@@ -25,7 +25,7 @@ Think of it as the all-stars setup — not everything available, just the things
 | `~/.claude/settings.json` | Plugins, env vars, MCP servers, hooks (deep-merged) |
 | `~/.claude/statusline-command.sh` | Status bar script — shows path, model, context %, effort level, 5h/7d rate limit usage + time-elapsed % of each window (green/yellow threshold coloring) |
 | `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, codereview-roasted, aidlc-tracking, review-council, frontend-design-review, karpathy-guidelines |
-| `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context`, `/frontend-design-review`, `/switch-local-model-on`, `/switch-local-model-off`, `/init-context` |
+| `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context`, `/frontend-design-review`, `/switch-to-ollama`, `/switch-to-anthropic`, `/init-context` |
 | LSP binaries | typescript-language-server (enabled), pyright (enabled), gopls, rust-analyzer, jdtls |
 | Browser automation | `@playwright/cli` with skills + Chromium |
 | MCP servers | context7 (enabled by default), gitnexus, context-mode, claude-mem, filesystem, supabase, vercel |
@@ -79,7 +79,7 @@ Always open this installed copy — not the `claude-local-starter.html` file in 
 |------|---------|
 | `install.sh` | The installer — idempotent, safe to re-run |
 | `scripts/limit-watchdog.sh` | Stop hook: detects Anthropic limits, writes Ollama override + handover marker |
-| `scripts/switch-to-anthropic.sh` | Two-phase switchback: signals Ollama session, then restores Anthropic routing |
+| `scripts/switch-to-anthropic.sh` | Full restore: 3-path key recovery (backup file → Linux `.credentials` → macOS Keychain), cleans all sentinel files, desktop notification |
 | `scripts/aidlc-guard.sh` | Stop hook: enforces AIDLC tracking discipline (non-fatal) |
 | `scripts/setup-ollama.sh` | Installs Ollama and pulls models for the switchover system |
 | `scripts/token-audit.sh` | Measure token footprint of skills and plugins before enabling them |
@@ -234,8 +234,8 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 | `/design-review` | Triggers the `review-council` skill for a full architectural review. Pass a scope (file, module, or decision) or leave blank to review the whole repo. |
 | `/log-context` | Writes a detailed session snapshot to `tasks/tracker.md` before compaction. Preserves enough context that a cold-start in the next session doesn't lose the thread. |
 | `/frontend-design-review` | Five-step visual design audit: hierarchy, typography, spacing, color, and production quality. Attach a screenshot and get specific, ranked fixes. |
-| `/switch-local-model-on` | Manually activate Ollama routing for the current session |
-| `/switch-local-model-off` | Deactivate Ollama routing and switch back to Anthropic |
+| `/switch-to-ollama` | Manually activate Ollama routing for the current session |
+| `/switch-to-anthropic` | Deactivate Ollama routing and switch back to Anthropic |
 | `/init-context` | Load session handover context on resume |
 
 ## Apex Layer — Local Model Continuity

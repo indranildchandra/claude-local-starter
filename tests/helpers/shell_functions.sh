@@ -1,15 +1,3 @@
-#!/usr/bin/env bash
-# tests/helpers/shell_functions.sh
-# Verbatim copy of the four shell functions from install.sh's ZSHBLOCK.
-# Source this file in tests to get the functions without running install.sh.
-# IMPORTANT: Keep in sync with install.sh — do not edit manually.
-#
-# Functions provided:
-#   _claude_notify
-#   _claude_pick_model
-#   claude   (the wrapper — calls `command claude` internally)
-#   switch-back
-
 _claude_notify() {
   local msg="$1" title="${2:-Claude Code}"
   if command -v osascript &>/dev/null; then
@@ -155,6 +143,20 @@ switch-back() {
   if [ -f "$key_backup" ]; then
     api_key=$(cat "$key_backup" 2>/dev/null | tr -d '[:space:]')
     rm -f "$key_backup"
+  fi
+
+  # Path 2: Linux / cross-platform — Claude Code native credential store
+  if [ -z "$api_key" ] && [ -f "$HOME/.claude/.credentials" ]; then
+    api_key=$(python3 -c "
+import json, os, sys
+p = os.path.join(os.path.expanduser('~'), '.claude', '.credentials')
+try:
+    d = json.load(open(p))
+    k = d.get('anthropicApiKey', '') or d.get('apiKey', '')
+    print(k.strip() if k else '')
+except Exception:
+    pass
+" 2>/dev/null) || api_key=""
   fi
 
   if [ -z "$api_key" ] && command -v security &>/dev/null; then

@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |------|---------|
 | `install.sh` | The installer — idempotent, safe to re-run |
 | `scripts/limit-watchdog.sh` | Stop hook: detects Anthropic limits, writes override + epoch reset-time file (no launchd) |
-| `scripts/switch-to-anthropic.sh` | Thin wrapper — prints tip to use `switch-back` shell function instead |
+| `scripts/switch-to-anthropic.sh` | Full restore: 3-path key recovery (backup file → Linux `.credentials` → macOS Keychain), cleans all sentinel files, desktop notification |
 | `scripts/switch-to-ollama.sh` | Manually activate Ollama routing: health check → model picker → write override + reset-time + `.ollama-manual` flag |
 | `scripts/aidlc-guard.sh` | Stop hook: enforces AIDLC tracking discipline (non-fatal) |
 | `scripts/claudeignore-guard.sh` | PreToolUse hook: blocks Read/Edit/Write on patterns in `.claudeignore` files |

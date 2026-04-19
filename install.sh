@@ -1125,6 +1125,20 @@ switch-back() {
     rm -f "$key_backup"
   fi
 
+  # Path 2: Linux / cross-platform — Claude Code native credential store
+  if [ -z "$api_key" ] && [ -f "$HOME/.claude/.credentials" ]; then
+    api_key=$(python3 -c "
+import json, os, sys
+p = os.path.join(os.path.expanduser('~'), '.claude', '.credentials')
+try:
+    d = json.load(open(p))
+    k = d.get('anthropicApiKey', '') or d.get('apiKey', '')
+    print(k.strip() if k else '')
+except Exception:
+    pass
+" 2>/dev/null) || api_key=""
+  fi
+
   if [ -z "$api_key" ] && command -v security &>/dev/null; then
     api_key=$(security find-generic-password -a claude -s "Claude API Key" -w 2>/dev/null || echo "")
   fi
