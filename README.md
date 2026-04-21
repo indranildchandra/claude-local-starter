@@ -24,7 +24,7 @@ Think of it as the all-stars setup — not everything available, just the things
 | `~/.claude/CLAUDE.md` | Global Claude Code behaviour (from `claude-md-master/CLAUDE.md`) |
 | `~/.claude/settings.json` | Plugins, env vars, MCP servers, hooks (deep-merged) |
 | `~/.claude/statusline-command.sh` | Status bar script — shows path, model, context %, effort level, 5h/7d rate limit usage + time-elapsed % of each window (green/yellow threshold coloring) |
-| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, codereview-roasted, aidlc-tracking, review-council, frontend-design-review, karpathy-guidelines |
+| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, codereview-roasted, aidlc-tracking, review-council, frontend-design-review, karpathy-guidelines, emil-design-eng, impeccable, taste-skill |
 | `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context`, `/frontend-design-review`, `/switch-to-ollama`, `/switch-to-anthropic`, `/init-context` |
 | LSP binaries | typescript-language-server (enabled), pyright (enabled), gopls, rust-analyzer, jdtls |
 | Browser automation | `@playwright/cli` with skills + Chromium |
@@ -184,6 +184,9 @@ Synced to `~/.claude/skills/` on install.
 | `shadcn` | [shadcn-ui/ui](https://github.com/shadcn-ui/ui/tree/main/skills/shadcn) |
 | `frontend-design` | [anthropics/skills](https://github.com/anthropics/skills/tree/main/skills/frontend-design) |
 | `web-design-guidelines` | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines) |
+| `emil-design-eng` | [emilkowalski/skill](https://github.com/emilkowalski/skill) |
+| `impeccable` | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) |
+| `taste-skill` | [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) |
 | `docx / pdf / pptx / xlsx` | bundled |
 
 ## Measuring token costs

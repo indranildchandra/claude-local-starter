@@ -460,6 +460,97 @@ elif [ -f "$HUMANIZER_MD" ]; then
 fi
 
 # ════════════════════════════════════════════════════════════════
+step "7b / External design skills (git clone)"
+# ════════════════════════════════════════════════════════════════
+# Skills sourced directly from GitHub where no skills-registry entry exists.
+# Each repo is cloned to ~/.claude/skills-ext/<staging>/ and the relevant
+# subdirectory is copied to ~/.claude/skills/<name>/ on every install run.
+# On re-run: stash → pull --ff-only → stash pop, then re-copy.
+
+EXT_SKILLS_DIR="${CLAUDE_DIR}/skills-ext"
+run "mkdir -p '$EXT_SKILLS_DIR'"
+
+clone_or_pull_skill() {
+  local repo_url="$1" staging_name="$2" src_subdir="$3" skill_name="$4"
+  local staging="$EXT_SKILLS_DIR/$staging_name"
+  local target="${CLAUDE_DIR}/skills/${skill_name}"
+
+  if [ -d "$staging" ]; then
+    log "Updating external skill: $skill_name..."
+    if ! $DRY_RUN; then
+      git -C "$staging" stash --quiet 2>/dev/null || true
+      git -C "$staging" pull --ff-only --quiet 2>/dev/null \
+        || warn "pull failed for $skill_name — using cached copy"
+      git -C "$staging" stash pop --quiet 2>/dev/null || true
+    else
+      echo -e "${Y}[dry-run]${RESET} git -C '$staging' pull --ff-only"
+    fi
+  else
+    log "Cloning $skill_name from $repo_url..."
+    if ! $DRY_RUN; then
+      git clone --depth 1 "$repo_url" "$staging" \
+        || { warn "clone failed for $skill_name — skipping"; return; }
+    else
+      echo -e "${Y}[dry-run]${RESET} git clone --depth 1 $repo_url $staging"
+    fi
+  fi
+
+  if ! $DRY_RUN; then
+    if [ -d "$staging/$src_subdir" ]; then
+      rm -rf "$target"
+      cp -r "$staging/$src_subdir" "$target"
+      ok "skill:$skill_name synced → ~/.claude/skills/$skill_name/"
+    else
+      warn "skill:$skill_name — subdir '$src_subdir' not found in repo"
+    fi
+  else
+    echo -e "${Y}[dry-run]${RESET} cp -r $staging/$src_subdir $target"
+  fi
+
+  # Patch SKILL.md: inject disable-model-invocation: true if missing.
+  # Pass path via env var — never interpolate into Python string literals.
+  local skill_md="${target}/SKILL.md"
+  if [ -f "$skill_md" ] && ! grep -q "disable-model-invocation" "$skill_md"; then
+    if ! $DRY_RUN; then
+      SKILL_MD_PATH="$skill_md" python3 -c "
+import os
+p = os.environ['SKILL_MD_PATH']
+c = open(p).read()
+if c.startswith('---'):
+    c = c.replace('---\n', '---\ndisable-model-invocation: true\n', 1)
+else:
+    c = '---\ndisable-model-invocation: true\n---\n' + c
+open(p, 'w').write(c)
+"
+      ok "skill:$skill_name patched: disable-model-invocation: true"
+    fi
+  elif [ -f "$skill_md" ]; then
+    ok "skill:$skill_name invocation control already set"
+  fi
+}
+
+# Emil Kowalski — design engineering (easing, timing, motion, micro-interactions)
+clone_or_pull_skill \
+  "https://github.com/emilkowalski/skill.git" \
+  "emilkowalski-skill" \
+  "skills/emil-design-eng" \
+  "emil-design-eng"
+
+# pbakaus/impeccable — 18 design commands, anti-AI-slop patterns
+clone_or_pull_skill \
+  "https://github.com/pbakaus/impeccable.git" \
+  "pbakaus-impeccable" \
+  "source/skills/impeccable" \
+  "impeccable"
+
+# Leonxlnx/taste-skill — variance, motion, density dials
+clone_or_pull_skill \
+  "https://github.com/Leonxlnx/taste-skill.git" \
+  "leonxlnx-taste-skill" \
+  "skills/taste-skill" \
+  "taste-skill"
+
+# ════════════════════════════════════════════════════════════════
 step "8 / uipro-cli (ui-ux-pro-max)"
 # ════════════════════════════════════════════════════════════════
 

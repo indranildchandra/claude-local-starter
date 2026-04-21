@@ -118,6 +118,9 @@ Place skill directories under `skills/` — each needs a `SKILL.md`. The install
 | `codereview-roasted` | Linus-style opinionated code review — data structures first, 7 scenarios, no flattery |
 | `frontend-design-review` | Five-step surgical UI audit — visual hierarchy, typography, whitespace, color/contrast, production quality |
 | `karpathy-guidelines` | Coding behaviour guardrails — think before coding, simplicity first, surgical changes, goal-driven execution |
+| `emil-design-eng` | Design engineering from Emil Kowalski — easing, timing, motion, micro-interactions that feel intentional |
+| `impeccable` | 18 design commands (`/audit`, `/polish`, `/typeset`, `/animate`…) that eliminate AI-slop aesthetics |
+| `taste-skill` | Three configurable design dials (variance, motion, density) to stop AI shipping generic centred layouts |
 
 ### Adding Custom Commands
 
