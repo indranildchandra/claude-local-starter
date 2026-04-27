@@ -76,16 +76,24 @@
 - **Verify the fix closes the gap**: after any fix, re-check the original mechanism to confirm the signal now flows end-to-end
 - Apply this to new tasks too: before implementing, reason through "what must be true for this to work?" and validate each precondition
 
-## Task Management
+### 11. Karpathy Coding Discipline
+- **For every coding task, apply the `karpathy-guidelines` skill** — it is the canonical source for efficient one-pass execution
+- **Think before you code**: reason through the complete approach, read the relevant code, and hold the full picture before writing a single line
+- **One-pass implementation**: get it right the first time; rewriting signals insufficient up-front reasoning, not iteration
+- **Surgical changes only**: touch the minimum code necessary to achieve the goal — collateral edits introduce bugs and noise
+- **Goal-driven execution**: keep the desired end state in view at every step; stop and re-orient if a sub-task no longer maps to the goal
+- **No exploratory sprawl**: every tool call and edit must advance the goal — if you are reading files "just in case", stop
+
 
 1. **Plan First**: Write plan to `tasks/todo.md` with checkable items
 2. **Log to docs/plan.md**: Append intent and tradeoffs before implementation (pre-hook)
 3. **Verify Plan**: Check in before starting implementation
 4. **Track Progress**: Mark items complete as you go in `tasks/todo.md`
 5. **Explain Changes**: High-level summary at each step
-6. **Log to audit/changelog.md**: Append what changed after implementation (post-hook)
-7. **Log to tasks/tracker.md**: Append task completion entry after each task (post-hook)
-8. **Capture Lessons**: Update `tasks/lessons.md` after corrections
+6. **Simplify**: Run `/simplify` on the changed code before logging — reviews the delta for reuse, quality, and efficiency; fixes issues found
+7. **Log to audit/changelog.md**: Append what changed after implementation (post-hook)
+8. **Log to tasks/tracker.md**: Append task completion entry after each task (post-hook)
+9. **Capture Lessons**: Update `tasks/lessons.md` after corrections
 
 ## Tracking Discipline
 
@@ -136,6 +144,7 @@ When compacting (manual or auto), **preserve**:
 ## Core Principles
 
 - **R-P-I (Reason, Plan, Implement)**: Before acting on anything non-trivial, reason through it first, write a plan, then implement. Never skip to implementation. Apply this to every decision, not just code.
+- **Karpathy One-Pass Standard**: Apply the `karpathy-guidelines` skill for all coding tasks. Think completely before touching code, execute in one clean pass, make surgical changes. If you find yourself rewriting, you did not think enough up front.
 - **Simplicity First**: Make every change as simple as possible. Impact minimal code.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 - **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.

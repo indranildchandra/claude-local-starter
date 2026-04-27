@@ -346,7 +346,7 @@ To manually activate Ollama routing (before a limit hits):
 ```bash
 bash scripts/switch-to-ollama.sh
 # or from inside Claude Code:
-# /switch-local-model-on
+# /switch-to-ollama
 ```
 
 ---
