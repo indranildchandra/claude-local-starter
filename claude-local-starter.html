@@ -755,6 +755,12 @@ cw    # launch with ~/.claude-work context loaded</pre>
 
         <h2>Update</h2>
         <pre>cd claude-local-starter && git pull && bash install.sh</pre>
+
+        <h2>Parallel agent teams</h2>
+        <p><code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code> is already enabled in <code>settings.json</code>. Requires Claude Code v2.1.32+.</p>
+        <p>To scaffold agent infrastructure for a project, run inside Claude Code:</p>
+        <pre>/init-agent-teams</pre>
+        <p>Creates <code>.claude/1-agent-teams/</code> (orchestrator + specialist agents), <code>2-context-management/</code>, <code>3-slash-commands/</code>, and <code>4-hooks/</code>.</p>
       </div>
 
       <div class="rm-col">
