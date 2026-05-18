@@ -1,0 +1,165 @@
+# Format: docs/impl-notes.html
+
+Created when a task is driven by a `<SPEC>` block. Updated in-place throughout
+implementation. One file per spec — never append multiple specs into one file.
+
+## When to create
+
+When the user message contains a `<SPEC>` block. Extract the spec content,
+seed the HTML below, then implement. Update Decision/Deviation/Tradeoff/Question
+entries as you work. Resolve or explicitly flag all open questions before closing.
+
+## HTML template
+
+Produce exactly this structure. Fill placeholders marked {{LIKE_THIS}}.
+Inline all styles — no external dependencies. File must open standalone in a browser.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>impl-notes — {{SPEC_TITLE}}</title>
+  <style>
+    :root {
+      --bg: #0d0d0d; --surface: #161616; --border: #2a2a2a;
+      --text: #e8e8e8; --muted: #777; --accent: #4a9eff;
+      --green: #4ade80; --yellow: #facc15; --red: #f87171; --purple: #c084fc;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font: 14px/1.6 'SF Mono', 'Fira Code', monospace; padding: 32px; max-width: 960px; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 32px; }
+    h1 { font-size: 18px; color: var(--accent); letter-spacing: 0.02em; margin-bottom: 8px; }
+    .meta { display: flex; gap: 24px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+    .meta span::before { content: attr(data-label) ": "; }
+    section { margin-bottom: 40px; }
+    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 16px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .spec-block { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 4px; white-space: pre-wrap; font-size: 13px; line-height: 1.7; }
+    .entry { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 16px 20px; margin-bottom: 12px; }
+    .entry-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+    .entry-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .entry-time { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .entry-body { font-size: 13px; color: #bbb; line-height: 1.65; }
+    .entry-body .chosen { color: var(--green); }
+    .entry-body .rejected { color: var(--muted); text-decoration: line-through; }
+    .badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 3px; font-weight: 600; letter-spacing: 0.04em; }
+    .badge-decision { background: #1a2a3a; color: var(--accent); }
+    .badge-deviation { background: #2a1a1a; color: var(--red); }
+    .badge-tradeoff { background: #2a2a1a; color: var(--yellow); }
+    .badge-open { background: #2a1a2a; color: var(--purple); }
+    .badge-resolved { background: #1a2a1a; color: var(--green); }
+    .empty { color: var(--muted); font-size: 12px; font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Implementation Notes — {{SPEC_TITLE}}</h1>
+  <div class="meta">
+    <span data-label="session">{{SESSION_ID}}</span>
+    <span data-label="started">{{DATE}}</span>
+    <span data-label="file">docs/impl-notes.html</span>
+    <span data-label="status">{{STATUS}}</span>
+  </div>
+</header>
+
+<!-- ── SPEC ─────────────────────────────────────────────────── -->
+<section id="spec">
+  <h2>Spec</h2>
+  <div class="spec-block">{{SPEC_CONTENT}}</div>
+</section>
+
+<!-- ── DESIGN DECISIONS ──────────────────────────────────────── -->
+<section id="decisions">
+  <h2>Design Decisions</h2>
+  <!-- Add one .entry per decision made where the spec was ambiguous. -->
+  <!--
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title"><span class="badge badge-decision">decision</span> &nbsp;{{TITLE}}</span>
+      <span class="entry-time">{{TIMESTAMP}}</span>
+    </div>
+    <div class="entry-body">{{REASONING}}</div>
+  </div>
+  -->
+  <p class="empty">No decisions recorded yet.</p>
+</section>
+
+<!-- ── DEVIATIONS ────────────────────────────────────────────── -->
+<section id="deviations">
+  <h2>Deviations</h2>
+  <!-- Intentional departures from the spec. Spec said X, we did Y because Z. -->
+  <!--
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title"><span class="badge badge-deviation">deviation</span> &nbsp;{{TITLE}}</span>
+      <span class="entry-time">{{TIMESTAMP}}</span>
+    </div>
+    <div class="entry-body">
+      <strong>Spec said:</strong> {{SPEC_SAID}}<br>
+      <strong>We did:</strong> {{WHAT_WE_DID}}<br>
+      <strong>Because:</strong> {{REASON}}
+    </div>
+  </div>
+  -->
+  <p class="empty">No deviations recorded yet.</p>
+</section>
+
+<!-- ── TRADEOFFS ─────────────────────────────────────────────── -->
+<section id="tradeoffs">
+  <h2>Tradeoffs</h2>
+  <!-- Alternatives considered. Mark chosen with .chosen, rejected with .rejected. -->
+  <!--
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title"><span class="badge badge-tradeoff">tradeoff</span> &nbsp;{{TITLE}}</span>
+      <span class="entry-time">{{TIMESTAMP}}</span>
+    </div>
+    <div class="entry-body">
+      Options: <span class="chosen">{{CHOSEN}}</span> vs <span class="rejected">{{REJECTED}}</span><br>
+      {{REASONING}}
+    </div>
+  </div>
+  -->
+  <p class="empty">No tradeoffs recorded yet.</p>
+</section>
+
+<!-- ── OPEN QUESTIONS ────────────────────────────────────────── -->
+<section id="questions">
+  <h2>Open Questions</h2>
+  <!-- Change badge-open → badge-resolved and add answer when resolved. -->
+  <!--
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title"><span class="badge badge-open">open</span> &nbsp;{{QUESTION}}</span>
+      <span class="entry-time">{{TIMESTAMP}}</span>
+    </div>
+    <div class="entry-body">{{CONTEXT}}</div>
+  </div>
+  -->
+  <p class="empty">No open questions.</p>
+</section>
+
+</body>
+</html>
+```
+
+## Entry field reference
+
+| Field | What to write |
+|-------|--------------|
+| `{{SPEC_TITLE}}` | One-line title from the spec or user message |
+| `{{SESSION_ID}}` | `$CLAUDE_SESSION_ID` or "unknown" |
+| `{{DATE}}` | ISO datetime when file was created |
+| `{{STATUS}}` | `in-progress` → `complete` → `blocked` |
+| `{{SPEC_CONTENT}}` | Full spec text verbatim, unmodified |
+| `{{TIMESTAMP}}` | ISO datetime of the entry |
+
+## Update rules
+
+- **Create** when you see `<SPEC>` in the user message — extract content, seed file, begin work
+- **Update in-place** — this is not append-only like plan.md; edit the existing sections
+- **Remove `.empty` placeholders** as you add real entries to each section
+- **Resolve questions** by changing `badge-open` → `badge-resolved` and adding the answer inline
+- **Set status to `complete`** in the header meta when implementation is done and all questions resolved or explicitly deferred
