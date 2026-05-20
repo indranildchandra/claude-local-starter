@@ -24,8 +24,8 @@ Think of it as the all-stars setup — not everything available, just the things
 | `~/.claude/CLAUDE.md` | Global Claude Code behaviour (from `claude-md-master/CLAUDE.md`) |
 | `~/.claude/settings.json` | Plugins, env vars, MCP servers, hooks (deep-merged) |
 | `~/.claude/statusline-command.sh` | Status bar script — shows path, model, context %, effort level, 5h/7d rate limit usage + time-elapsed % of each window (green/yellow threshold coloring) |
-| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, codereview-roasted, aidlc-tracking, review-council, frontend-design-review, karpathy-guidelines |
-| `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context`, `/frontend-design-review`, `/switch-local-model-on`, `/switch-local-model-off`, `/init-context` |
+| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, codereview-roasted, aidlc-tracking, review-council, frontend-design-review, karpathy-guidelines, emil-design-eng, impeccable, taste-skill |
+| `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context`, `/frontend-design-review`, `/switch-to-ollama`, `/switch-to-anthropic`, `/init-context`, `/init-agent-teams` |
 | LSP binaries | typescript-language-server (enabled), pyright (enabled), gopls, rust-analyzer, jdtls |
 | Browser automation | `@playwright/cli` with skills + Chromium |
 | MCP servers | context7 (enabled by default), gitnexus, context-mode, claude-mem, filesystem, supabase, vercel |
@@ -79,7 +79,7 @@ Always open this installed copy — not the `claude-local-starter.html` file in 
 |------|---------|
 | `install.sh` | The installer — idempotent, safe to re-run |
 | `scripts/limit-watchdog.sh` | Stop hook: detects Anthropic limits, writes Ollama override + handover marker |
-| `scripts/switch-to-anthropic.sh` | Two-phase switchback: signals Ollama session, then restores Anthropic routing |
+| `scripts/switch-to-anthropic.sh` | Full restore: 3-path key recovery (backup file → Linux `.credentials` → macOS Keychain), cleans all sentinel files, desktop notification |
 | `scripts/aidlc-guard.sh` | Stop hook: enforces AIDLC tracking discipline (non-fatal) |
 | `scripts/setup-ollama.sh` | Installs Ollama and pulls models for the switchover system |
 | `scripts/token-audit.sh` | Measure token footprint of skills and plugins before enabling them |
@@ -184,6 +184,9 @@ Synced to `~/.claude/skills/` on install.
 | `shadcn` | [shadcn-ui/ui](https://github.com/shadcn-ui/ui/tree/main/skills/shadcn) |
 | `frontend-design` | [anthropics/skills](https://github.com/anthropics/skills/tree/main/skills/frontend-design) |
 | `web-design-guidelines` | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines) |
+| `emil-design-eng` | [emilkowalski/skill](https://github.com/emilkowalski/skill) |
+| `impeccable` | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) |
+| `taste-skill` | [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) |
 | `docx / pdf / pptx / xlsx` | bundled |
 
 ## Measuring token costs
@@ -234,9 +237,41 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 | `/design-review` | Triggers the `review-council` skill for a full architectural review. Pass a scope (file, module, or decision) or leave blank to review the whole repo. |
 | `/log-context` | Writes a detailed session snapshot to `tasks/tracker.md` before compaction. Preserves enough context that a cold-start in the next session doesn't lose the thread. |
 | `/frontend-design-review` | Five-step visual design audit: hierarchy, typography, spacing, color, and production quality. Attach a screenshot and get specific, ranked fixes. |
-| `/switch-local-model-on` | Manually activate Ollama routing for the current session |
-| `/switch-local-model-off` | Deactivate Ollama routing and switch back to Anthropic |
+| `/switch-to-ollama` | Manually activate Ollama routing for the current session |
+| `/switch-to-anthropic` | Deactivate Ollama routing and switch back to Anthropic |
 | `/init-context` | Load session handover context on resume |
+| `/init-agent-teams` | Scaffold parallel agent-team infrastructure inside the project's `.claude/` directory — creates numbered subfolders (`1-agent-teams/`, `2-context-management/`, `3-slash-commands/`, `4-hooks/`), writes an orchestrator template and one specialist agent per detected domain, and drops `enable-flag.json` for the experimental teams flag. |
+
+## Parallel Agent Teams
+
+Claude Code supports parallel sub-agents, each running in their own context window. This repo has the feature flag enabled globally and includes a `/init-agent-teams` command to scaffold the project-level structure.
+
+**The flag is already active** — `settings.json` ships with:
+```json
+"env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" }
+```
+Requires Claude Code v2.1.32+. Restart Claude Code after upgrading.
+
+**Project-level setup**
+
+Run `/init-agent-teams` in any project to create:
+```
+.claude/
+  1-agent-teams/
+    enable-flag.json     ← project-level belt-and-suspenders
+    orchestrator.md      ← coordinates all sub-agents
+    setup-agent.md       ← project setup / scaffolding
+    <domain>-agent.md    ← one per detected domain (api, frontend, test…)
+  2-context-management/
+    CLAUDE.local.md      ← private overrides (gitignored)
+  3-slash-commands/      ← project-specific commands
+  4-hooks/
+    register.json        ← project-level hook registration
+```
+
+The orchestrator spawns specialists in parallel, each with a scoped prompt and full context — no shared state, no cross-contamination. Every agent closes out with an AIDLC entry.
+
+---
 
 ## Apex Layer — Local Model Continuity
 

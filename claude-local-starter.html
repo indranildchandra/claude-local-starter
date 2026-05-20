@@ -603,6 +603,21 @@ cd your-project && npx shadcn@latest init</pre><button class="copy-btn" onclick=
         <div class="idesc">Vercel Labs web design best practices — layout, typography, accessibility.</div>
         <div class="copy-block"><pre>enable-skill web-design-guidelines</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
       </div>
+      <div class="item skill">
+        <div class="ihead"><span class="iname"><a href="https://github.com/emilkowalski/skill" target="_blank" rel="noopener">emil-design-eng</a></span><span class="tok tok-ctx">~120 tokens</span><div class="itags"><span class="tag community">emilkowalski</span></div></div>
+        <div class="idesc">Design engineering from the guy who runs the web team at Linear — intentional easing, timing, motion, and micro-interactions that feel right instead of janky.</div>
+        <div class="copy-block"><pre>enable-skill emil-design-eng</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item skill">
+        <div class="ihead"><span class="iname"><a href="https://github.com/pbakaus/impeccable" target="_blank" rel="noopener">impeccable</a></span><span class="tok tok-ctx">~180 tokens</span><div class="itags"><span class="tag community">pbakaus</span></div></div>
+        <div class="idesc">18 design commands that kill AI-slop aesthetics — /audit, /polish, /typeset, /animate and more. Bans gradient text, side-stripe cards, Inter everywhere. Run /impeccable teach first.</div>
+        <div class="copy-block"><pre>enable-skill impeccable</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
+      <div class="item skill">
+        <div class="ihead"><span class="iname"><a href="https://github.com/Leonxlnx/taste-skill" target="_blank" rel="noopener">taste-skill</a></span><span class="tok tok-ctx">~150 tokens</span><div class="itags"><span class="tag community">Leonxlnx</span></div></div>
+        <div class="idesc">Three configurable design dials — variance (layout asymmetry), motion intensity, and visual density. Stops AI from shipping boring centred headers and identical card grids.</div>
+        <div class="copy-block"><pre>enable-skill taste-skill</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
     </div>
   </div>
 
@@ -659,6 +674,18 @@ cd your-project && npx shadcn@latest init</pre><button class="copy-btn" onclick=
       <div class="ihead"><span class="iname"><a href="https://vercel.com/docs/agent-resources/vercel-mcp" target="_blank" rel="noopener">vercel</a></span></div>
       <div class="idesc">Deploy, check status, view logs from CLI sessions.</div>
       <div class="copy-block"><pre>"type": "url", "url": "https://mcp.vercel.com"</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+    </div>
+  </div>
+
+  <div class="section" style="margin-top:16px">
+    <div class="sh">Optional / External</div>
+    <div class="items">
+      <div class="item mcp">
+        <div class="ihead"><span class="iname"><a href="https://github.com/yvgude/lean-ctx" target="_blank" rel="noopener">lean-ctx</a></span><div class="itags"><span class="tag community">external</span></div></div>
+        <div class="idesc">Context compression layer — intercepts verbose shell output (build logs, git, npm, docker) before it hits the token window, and adds smarter file-read modes (map, signatures, AST) at 5–20% of normal token cost. Install separately; not bundled due to Rust binary dependency and MCP tool count (59 tools).</div>
+        <div class="copy-block"><pre>curl -fsSL https://leanctx.com/install.sh | sh
+lean-ctx setup</pre><button class="copy-btn" onclick="copyBlock(this)">copy</button></div>
+      </div>
     </div>
   </div>
 </div>
@@ -740,6 +767,12 @@ cw    # launch with ~/.claude-work context loaded</pre>
 
         <h2>Update</h2>
         <pre>cd claude-local-starter && git pull && bash install.sh</pre>
+
+        <h2>Parallel agent teams</h2>
+        <p><code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code> is already enabled in <code>settings.json</code>. Requires Claude Code v2.1.32+.</p>
+        <p>To scaffold agent infrastructure for a project, run inside Claude Code:</p>
+        <pre>/init-agent-teams</pre>
+        <p>Creates <code>.claude/1-agent-teams/</code> (orchestrator + specialist agents), <code>2-context-management/</code>, <code>3-slash-commands/</code>, and <code>4-hooks/</code>.</p>
       </div>
 
       <div class="rm-col">

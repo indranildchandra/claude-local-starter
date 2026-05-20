@@ -12,7 +12,7 @@ and switches back when Anthropic limits reset — with no manual steps required.
 2. [Full Switchover Cycle — Sequence Diagram](#full-switchover-cycle--sequence-diagram)
 3. [Component Deep Dives](#component-deep-dives)
    - [limit-watchdog.sh — Three-Path Detection](#limit-watchdogsh--three-path-detection)
-   - [switch-to-anthropic.sh — Thin Wrapper](#switch-to-anthropicsh--thin-wrapper)
+   - [switch-to-anthropic.sh — Full Restore Script](#switch-to-anthropicsh--full-restore-script)
    - [switch-back shell function — In-Place Switchback](#switch-back-shell-function--in-place-switchback)
    - [switch-to-ollama.sh — Manual Ollama Activation](#switch-to-ollamash--manual-ollama-activation)
    - [claude() wrapper — Transparent Model Routing](#claude-wrapper--transparent-model-routing)
@@ -51,7 +51,7 @@ flowchart LR
     subgraph HOOKS_DETAIL["Hook Scripts (~/.claude/scripts/)"]
         WD["limit-watchdog.sh\nStop hook"]
         AG["aidlc-guard.sh\nStop hook"]
-        STA["switch-to-anthropic.sh\nthin wrapper (tip + cleanup)"]
+        STA["switch-to-anthropic.sh\nfull restore (cleanup + key restore)"]
         STO["switch-to-ollama.sh\nmanual activation"]
         STB["switch-back\nshell function (in-place)"]
     end
@@ -221,7 +221,7 @@ sequenceDiagram
         ZSH->>FS: check ~/.claude/.ollama-override
         FS-->>ZSH: found!
         ZSH->>FS: read ~/.claude/.ollama-reset-time
-        ZSH->>ZSH: current_time < reset_epoch (or no reset time, within 8h, or manual flag present)
+        ZSH->>ZSH: current_time < reset_epoch (or no reset time, within 5h, or manual flag present)
         ZSH->>Dev: "yes(Y) use Ollama  /  reset(r) switch back to Anthropic:"
         Dev->>ZSH: r
 
@@ -296,9 +296,9 @@ flowchart TD
 
 ---
 
-### switch-to-anthropic.sh — Thin Wrapper
+### switch-to-anthropic.sh — Full Restore Script
 
-Thin wrapper script. The primary switchback mechanism is the `switch-back` shell function. This script exists for backwards compatibility and as a tip-printer — it prints a reminder to use `switch-back` instead and performs basic env var cleanup.
+Full counterpart to `switch-to-ollama.sh`. Restores Anthropic routing, recovers the API key via a three-path fallback chain, cleans all sentinel files, and sends a desktop notification. Works correctly when sourced (env vars update in the calling shell) or run as a subprocess (file cleanup still happens; prints the `unset` commands the user needs to run manually).
 
 ```mermaid
 sequenceDiagram
@@ -306,20 +306,31 @@ sequenceDiagram
     participant STA as switch-to-anthropic.sh
     participant FS as File System
 
-    Dev->>STA: bash switch-to-anthropic.sh
-    STA->>Dev: prints tip: "run switch-back in your terminal instead"
-    STA->>STA: unset ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN
-    STA->>FS: restore ANTHROPIC_API_KEY from .ollama-anthropic-key-backup (if present)
-    STA->>FS: rm .ollama-override (if present)
-    STA->>FS: rm .ollama-reset-time (if present)
-    STA->>Dev: "Switched back to Anthropic"
+    Dev->>STA: source ~/.claude/scripts/switch-to-anthropic.sh
+    STA->>FS: Path 1 — read ANTHROPIC_API_KEY from .ollama-anthropic-key-backup
+    alt backup file present
+        FS-->>STA: key restored; rm .ollama-anthropic-key-backup
+    else no backup
+        STA->>FS: Path 2 — read key from ~/.claude/.credentials (Linux store)
+        alt .credentials present
+            FS-->>STA: key from anthropicApiKey field
+        else no .credentials
+            STA->>STA: Path 3 — security find-generic-password (macOS Keychain)
+        end
+    end
+    STA->>STA: unset ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN, OLLAMA_MODEL
+    STA->>STA: export ANTHROPIC_API_KEY (if restored)
+    STA->>FS: rm .ollama-override, .ollama-reset-time, .pre-switchback, .ollama-manual
+    STA->>Dev: desktop notification + summary
+    STA->>Dev: "Run: claude"
 ```
 
 **Key design decisions:**
 
-- Thin wrapper only — no background phases, no launchd dependency
+- Three-path key restoration covers all platforms: backup file (all), Linux `.credentials`, macOS Keychain
 - Safe to run multiple times (idempotent `rm -f` operations)
-- Delegates real in-place env restoration to `switch-back` shell function
+- When sourced: env vars update in the calling shell directly
+- When run as subprocess: prints `unset` commands for the user to run; recommends `switch-back`
 
 ---
 
@@ -380,10 +391,10 @@ flowchart TD
     EPOCH -- time passed --> AUTOCLEAN[Auto-cleanup: rm override + reset-time + manual flag\nno prompt — silent self-heal]
     AUTOCLEAN --> NORMAL
 
-    RST -- no reset file --> AGECHECK{.ollama-manual present?\nor override age < 8h?}
+    RST -- no reset file --> AGECHECK{.ollama-manual present?\nor override age < 5h?}
     EPOCH -- not yet --> AGECHECK
 
-    AGECHECK -- no manual AND > 8h old --> AUTOCLEAN
+    AGECHECK -- no manual AND > 5h old --> AUTOCLEAN
     AGECHECK -- manual flag OR recent --> PROMPT["yes(Y) use Ollama  /  reset(r) switch back to Anthropic:"]
 
     PROMPT -- r / reset --> CLEAN[rm override + reset-time + manual flag\nunset env vars]

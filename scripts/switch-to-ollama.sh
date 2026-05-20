@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scripts/switch-to-ollama.sh — manually activate Ollama routing
-# Prefer: run '/switch-local-model-on' inside Claude, which guides you through this.
+# Prefer: run '/switch-to-ollama' inside Claude, which guides you through this.
 # Direct use: bash ~/.claude/scripts/switch-to-ollama.sh [reset_hour reset_minute]
 #   e.g. bash ~/.claude/scripts/switch-to-ollama.sh 15 0   (reset at 3:00 PM)
 set -euo pipefail

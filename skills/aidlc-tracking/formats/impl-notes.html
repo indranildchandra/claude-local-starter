@@ -1,0 +1,225 @@
+# Format: docs/impl-notes/<timestamp>_<slug>.html
+
+One file per spec per iteration. Never overwrite an existing file.
+Multiple iterations of the same module produce multiple timestamped files — that is correct behaviour.
+
+## Filename derivation
+
+```
+YYYY-MM-DDTHH-MM-SS_<slug>.html
+```
+
+**Timestamp** — local timezone, derived at the moment the `<SPEC>` is received:
+```bash
+date '+%Y-%m-%dT%H-%M-%S'
+```
+
+**Slug** — in priority order:
+1. `title` attribute if present: `<SPEC title="auth-module">` → `auth-module`
+2. First non-empty line of the spec content, lowercased, spaces/punctuation → hyphens, max 48 chars
+
+Examples:
+```
+2026-05-18T20-56-00_auth-module.html
+2026-05-18T21-30-00_payment-flow-redesign.html
+2026-08-12T09-15-00_auth-module.html    ← second iteration, same module
+```
+
+## Index file
+
+After creating or updating any impl-notes file, regenerate `docs/impl-notes/index.html`.
+Read all `*.html` files in the directory (excluding index.html itself), extract `<title>`,
+status meta, and started meta from each, then write the index newest-first.
+
+Index template:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Implementation Notes — Index</title>
+  <style>
+    :root { --bg:#0d0d0d; --surface:#161616; --border:#2a2a2a; --text:#e8e8e8; --muted:#777; --accent:#4a9eff; --green:#4ade80; --yellow:#facc15; --red:#f87171; --purple:#c084fc; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font:14px/1.6 'SF Mono','Fira Code',monospace; padding:32px; max-width:800px; margin:0 auto; }
+    header { border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:28px; }
+    h1 { font-size:16px; color:var(--accent); }
+    .sub { color:var(--muted); font-size:12px; margin-top:4px; }
+    .entry { display:flex; align-items:baseline; gap:16px; padding:12px 0; border-bottom:1px solid var(--border); }
+    .entry:last-child { border-bottom:none; }
+    .ts { color:var(--muted); font-size:11px; white-space:nowrap; }
+    .title { flex:1; }
+    .title a { color:var(--text); text-decoration:none; }
+    .title a:hover { color:var(--accent); }
+    .badge { font-size:10px; padding:2px 7px; border-radius:3px; font-weight:600; letter-spacing:0.04em; white-space:nowrap; }
+    .in-progress { background:#1a2a3a; color:var(--accent); }
+    .complete    { background:#1a2a1a; color:var(--green); }
+    .blocked     { background:#2a1a1a; color:var(--red); }
+    .empty { color:var(--muted); font-style:italic; font-size:13px; margin-top:16px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Implementation Notes — Index</h1>
+    <div class="sub">{{COUNT}} spec(s) · last updated {{UPDATED}}</div>
+  </header>
+  {{ENTRIES}}
+  <!-- If no entries: <p class="empty">No implementation notes yet.</p> -->
+</body>
+</html>
+```
+
+Each `{{ENTRIES}}` row:
+```html
+<div class="entry">
+  <span class="ts">{{STARTED}}</span>
+  <span class="title"><a href="{{FILENAME}}">{{SPEC_TITLE}}</a></span>
+  <span class="badge {{STATUS_CLASS}}">{{STATUS}}</span>
+</div>
+```
+
+## impl-notes file template
+
+Produce this structure for each new spec. Fill all `{{PLACEHOLDERS}}`.
+Inline all styles — file must open standalone in a browser.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>impl-notes — {{SPEC_TITLE}}</title>
+  <style>
+    :root { --bg:#0d0d0d; --surface:#161616; --border:#2a2a2a; --text:#e8e8e8; --muted:#777; --accent:#4a9eff; --green:#4ade80; --yellow:#facc15; --red:#f87171; --purple:#c084fc; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font:14px/1.6 'SF Mono','Fira Code',monospace; padding:32px; max-width:960px; margin:0 auto; }
+    header { border-bottom:1px solid var(--border); padding-bottom:20px; margin-bottom:32px; }
+    h1 { font-size:18px; color:var(--accent); letter-spacing:0.02em; margin-bottom:8px; }
+    .meta { display:flex; gap:24px; flex-wrap:wrap; color:var(--muted); font-size:12px; }
+    .meta span::before { content:attr(data-label) ": "; }
+    section { margin-bottom:40px; }
+    h2 { font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:16px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+    .spec-block { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent); padding:16px 20px; border-radius:4px; white-space:pre-wrap; font-size:13px; line-height:1.7; }
+    .entry { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:16px 20px; margin-bottom:12px; }
+    .entry-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:8px; }
+    .entry-title { font-size:13px; font-weight:600; color:var(--text); }
+    .entry-time { font-size:11px; color:var(--muted); white-space:nowrap; }
+    .entry-body { font-size:13px; color:#bbb; line-height:1.65; }
+    .chosen { color:var(--green); }
+    .rejected { color:var(--muted); text-decoration:line-through; }
+    .badge { display:inline-block; font-size:10px; padding:2px 7px; border-radius:3px; font-weight:600; letter-spacing:0.04em; }
+    .badge-decision  { background:#1a2a3a; color:var(--accent); }
+    .badge-deviation { background:#2a1a1a; color:var(--red); }
+    .badge-tradeoff  { background:#2a2a1a; color:var(--yellow); }
+    .badge-open      { background:#2a1a2a; color:var(--purple); }
+    .badge-resolved  { background:#1a2a1a; color:var(--green); }
+    .empty { color:var(--muted); font-size:12px; font-style:italic; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>{{SPEC_TITLE}}</h1>
+  <div class="meta">
+    <span data-label="session">{{SESSION_ID}}</span>
+    <span data-label="started">{{STARTED}}</span>
+    <span data-label="file">docs/impl-notes/{{FILENAME}}</span>
+    <span data-label="status">{{STATUS}}</span>
+  </div>
+</header>
+
+<section id="spec">
+  <h2>Spec</h2>
+  <div class="spec-block">{{SPEC_CONTENT}}</div>
+</section>
+
+<section id="decisions">
+  <h2>Design Decisions</h2>
+  <p class="empty">No decisions recorded yet.</p>
+  <!--
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title"><span class="badge badge-decision">decision</span> &nbsp;{{TITLE}}</span>
+      <span class="entry-time">{{TIMESTAMP}}</span>
+    </div>
+    <div class="entry-body">{{REASONING}}</div>
+  </div>
+  -->
+</section>
+
+<section id="deviations">
+  <h2>Deviations</h2>
+  <p class="empty">No deviations recorded yet.</p>
+  <!--
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title"><span class="badge badge-deviation">deviation</span> &nbsp;{{TITLE}}</span>
+      <span class="entry-time">{{TIMESTAMP}}</span>
+    </div>
+    <div class="entry-body">
+      <strong>Spec said:</strong> {{SPEC_SAID}}<br>
+      <strong>We did:</strong> {{WHAT_WE_DID}}<br>
+      <strong>Because:</strong> {{REASON}}
+    </div>
+  </div>
+  -->
+</section>
+
+<section id="tradeoffs">
+  <h2>Tradeoffs</h2>
+  <p class="empty">No tradeoffs recorded yet.</p>
+  <!--
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title"><span class="badge badge-tradeoff">tradeoff</span> &nbsp;{{TITLE}}</span>
+      <span class="entry-time">{{TIMESTAMP}}</span>
+    </div>
+    <div class="entry-body">
+      Options: <span class="chosen">{{CHOSEN}}</span> vs <span class="rejected">{{REJECTED}}</span><br>
+      {{REASONING}}
+    </div>
+  </div>
+  -->
+</section>
+
+<section id="questions">
+  <h2>Open Questions</h2>
+  <p class="empty">No open questions.</p>
+  <!--
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title"><span class="badge badge-open">open</span> &nbsp;{{QUESTION}}</span>
+      <span class="entry-time">{{TIMESTAMP}}</span>
+    </div>
+    <div class="entry-body">{{CONTEXT}}</div>
+  </div>
+  -->
+</section>
+
+</body>
+</html>
+```
+
+## Field reference
+
+| Field | Value |
+|-------|-------|
+| `{{SPEC_TITLE}}` | `title` attribute if present; otherwise first non-empty line of spec, max 48 chars |
+| `{{SLUG}}` | `{{SPEC_TITLE}}` lowercased, spaces/punctuation → hyphens |
+| `{{FILENAME}}` | `YYYY-MM-DDTHH-MM-SS_{{SLUG}}.html` using local timezone |
+| `{{STARTED}}` | Local timezone datetime: `date '+%Y-%m-%d %H:%M:%S %Z'` |
+| `{{SESSION_ID}}` | `$CLAUDE_SESSION_ID` or "unknown" |
+| `{{STATUS}}` | `in-progress` → `complete` → `blocked` |
+| `{{SPEC_CONTENT}}` | Full spec verbatim, unmodified |
+| `{{TIMESTAMP}}` | Local timezone datetime of each entry |
+
+## Update rules
+
+- **Never overwrite** an existing impl-notes file — each `<SPEC>` invocation creates a new timestamped file
+- **Update in-place** within the current session's file — sections are edited, not appended
+- **Remove `.empty` placeholders** as real entries are added to each section
+- **Resolve questions** by changing `badge-open` → `badge-resolved`, adding answer inline
+- **Set status `complete`** when implementation is done and all questions resolved or explicitly deferred
+- **Regenerate index.html** after every create or status update
