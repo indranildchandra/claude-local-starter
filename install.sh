@@ -299,6 +299,8 @@ step "5 / Skills -- install via npx skills add"
 #   shadcn-ui             shadcn/ui deep knowledge  (npx skills add shadcn/ui)
 #   web-design-guidelines Vercel Labs web design best practices
 #   humanizer             strips AI writing patterns (blader)
+#   last30days            multi-source 30-day research (Reddit, HN, YouTube, GitHub, Polymarket)
+#   ddg-search            DuckDuckGo search fallback -- bundled from repo skills/
 
 install_skill() {
   local pkg="$1"   # e.g. anthropics/skills
@@ -337,11 +339,12 @@ install_skill "anthropics/skills"                              "frontend-design"
 install_skill "nextlevelbuilder/ui-ux-pro-max-skill"           "ui-ux-pro-max"
 install_skill "shadcn/ui"                                      "shadcn"
 install_skill "vercel-labs/agent-skills"                       "web-design-guidelines"
+install_skill "mvanhorn/last30days-skill"                      "last30days"
 
 # Patch community skills: inject disable-model-invocation: true if missing.
 # Skills remain installed and user-invocable via /skill-name but cost
 # zero tokens at session start (not listed in Claude's context).
-for skill in frontend-design ui-ux-pro-max shadcn web-design-guidelines; do
+for skill in frontend-design ui-ux-pro-max shadcn web-design-guidelines last30days; do
   skill_md="${CLAUDE_DIR}/skills/${skill}/SKILL.md"
   if [ -f "$skill_md" ] && ! grep -q "disable-model-invocation" "$skill_md"; then
     if ! $DRY_RUN; then
@@ -377,6 +380,18 @@ else
   for skill in "${BUNDLED_SKILLS[@]}"; do
     ok "skill:${skill} present"
   done
+fi
+
+# Python dependencies for bundled skills (always run -- idempotent pip installs)
+# - yt-dlp   : YouTube transcript extraction for last30days
+# - ddgs     : DuckDuckGo search for ddg-search skill
+log "Installing Python skill dependencies (yt-dlp, ddgs)..."
+if ! $DRY_RUN; then
+  pip install --quiet --upgrade yt-dlp ddgs \
+    && ok "Python skill deps installed: yt-dlp ddgs" \
+    || warn "pip install failed -- try manually: pip install yt-dlp ddgs"
+else
+  echo -e "${Y}[dry-run]${RESET} pip install --quiet --upgrade yt-dlp ddgs"
 fi
 
 # ════════════════════════════════════════════════════════════════

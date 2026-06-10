@@ -88,6 +88,8 @@ Place skill directories under `skills/` — each needs a `SKILL.md`. The install
 | `aidlc-tracking` | Canonical formats for all project tracking files |
 | `review-council` | Multi-persona architecture review council |
 | `ppt-creator` | Personal presentation builder — research, narrative, design system, QA pipeline |
+| `last30days` | Multi-source 30-day research — Reddit, HN, YouTube, GitHub, Polymarket (free tier; no paid API keys required) |
+| `ddg-search` | DuckDuckGo web search fallback — zero API keys, works with locally-hosted models lacking native search |
 
 ### Adding Custom Commands
 
