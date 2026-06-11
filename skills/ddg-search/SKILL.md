@@ -26,7 +26,7 @@ Returns up to 10 results with title, URL, and full body text per result.
 ## Requirements
 
 - Python 3.12+
-- `ddgs` package — installed automatically by `install.sh` via `pip install ddgs`
+- `ddgs==9.14.4` — installed automatically by `install.sh`
 
 ## Usage patterns
 
