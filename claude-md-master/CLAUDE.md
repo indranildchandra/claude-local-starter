@@ -105,6 +105,16 @@ When compacting (manual or auto), **preserve**:
 
 **Discard:** exploratory reads that led nowhere, failed attempts, verbose tool output no longer needed, and repetitive explanations.
 
+## Bundled Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `aidlc-tracking` | Canonical formats for all project tracking files |
+| `review-council` | Multi-persona architecture review council |
+| `ppt-creator` | Personal presentation builder — research, narrative, design system, QA pipeline |
+| `last30days` | Multi-source 30-day research — Reddit, HN, YouTube, GitHub, Polymarket (free tier; no paid API keys required) |
+| `ddg-search` | DuckDuckGo web search fallback — zero API keys, works with locally-hosted models lacking native search |
+
 ## Core Principles
 
 - **R-P-I (Reason, Plan, Implement)**: Before acting on anything non-trivial, reason through it first, write a plan, then implement. Never skip to implementation. Apply this to every decision, not just code.

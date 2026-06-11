@@ -21,7 +21,7 @@ def ddg_search(query: str) -> str:
         if not results:
             return f"No results found for: {query}"
 
-        lines = [f"Search results for: {query}\n"]
+        lines = [f"Search results for: {query}"]
         for i, r in enumerate(results, 1):
             lines.append(f"{i}. {r.get('title', 'No title')}")
             lines.append(f"   URL: {r.get('href', '')}")
@@ -33,7 +33,7 @@ def ddg_search(query: str) -> str:
 
 
 if __name__ == "__main__":
-    query = " ".join(sys.argv[1:])
+    query = " ".join(sys.argv[1:]).strip()
     if not query:
         print("Usage: python3 duckduckgo_search.py <query>")
         sys.exit(1)

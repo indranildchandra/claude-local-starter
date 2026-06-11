@@ -348,9 +348,9 @@ for skill in frontend-design ui-ux-pro-max shadcn web-design-guidelines last30da
   skill_md="${CLAUDE_DIR}/skills/${skill}/SKILL.md"
   if [ -f "$skill_md" ] && ! grep -q "disable-model-invocation" "$skill_md"; then
     if ! $DRY_RUN; then
-      skill_md_escaped="${skill_md}"
-      python3 -c "
-p = '${skill_md_escaped}'
+      SKILL_MD_PATH="${skill_md}" python3 -c "
+import os
+p = os.environ['SKILL_MD_PATH']
 c = open(p).read()
 if c.startswith('---'):
     c = c.replace('---\n', '---\ndisable-model-invocation: true\n', 1)
@@ -387,11 +387,12 @@ fi
 # - ddgs==9.14.4       : DuckDuckGo search for ddg-search skill
 log "Installing Python skill dependencies (yt-dlp==2026.3.17, ddgs==9.14.4)..."
 if ! $DRY_RUN; then
-  python3 -m pip install --quiet "yt-dlp==2026.3.17" "ddgs==9.14.4" \
+  python3 -m pip install --quiet --no-input "yt-dlp==2026.3.17" "ddgs==9.14.4" --break-system-packages 2>/dev/null \
+    || python3 -m pip install --quiet --no-input "yt-dlp==2026.3.17" "ddgs==9.14.4" \
     && ok "Python skill deps installed: yt-dlp==2026.3.17 ddgs==9.14.4" \
     || warn "pip install failed -- try manually: python3 -m pip install 'yt-dlp==2026.3.17' 'ddgs==9.14.4'"
 else
-  echo -e "${Y}[dry-run]${RESET} python3 -m pip install 'yt-dlp==2026.3.17' 'ddgs==9.14.4'"
+  echo -e "${Y}[dry-run]${RESET} python3 -m pip install --no-input 'yt-dlp==2026.3.17' 'ddgs==9.14.4'"
 fi
 
 # ════════════════════════════════════════════════════════════════
