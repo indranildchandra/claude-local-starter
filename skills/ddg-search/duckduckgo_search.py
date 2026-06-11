@@ -25,7 +25,7 @@ def ddg_search(query: str) -> str:
         for i, r in enumerate(results, 1):
             lines.append(f"{i}. {r.get('title', 'No title')}")
             lines.append(f"   URL: {r.get('href', '')}")
-            lines.append(f"   {r.get('body', '')[:300]}")
+            lines.append(f"   {r.get('body', '')}")
             lines.append("")
         return "\n".join(lines)
     except Exception as e:

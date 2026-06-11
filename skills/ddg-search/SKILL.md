@@ -1,7 +1,7 @@
 ---
 name: ddg-search
 description: Web search via DuckDuckGo — zero API keys, no authentication. Use when native WebSearch/WebFetch is unavailable (locally-hosted models, restricted environments) or as a lightweight search fallback.
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # DuckDuckGo Search
@@ -21,7 +21,7 @@ Run the bundled script via Bash:
 python3 ~/.claude/skills/ddg-search/duckduckgo_search.py "<your query>"
 ```
 
-Returns up to 10 results with title, URL, and a 300-character snippet per result.
+Returns up to 10 results with title, URL, and full body text per result.
 
 ## Requirements
 
