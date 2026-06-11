@@ -1032,6 +1032,12 @@ SKILLS_SRC="${SCRIPT_DIR}/skills"
 if [ -d "$SKILLS_SRC" ] && [ "$(ls -A "$SKILLS_SRC" 2>/dev/null)" ]; then
   run "mkdir -p '${CLAUDE_DIR}/skills'"
   run "cp -rn '$SKILLS_SRC/.' '${CLAUDE_DIR}/skills/' || true"  # -n: no overwrite; || true: existing files return non-zero on macOS
+  # Force-update ddg-search on every run — its Python script receives active bugfixes
+  # and cp -rn above won't overwrite existing files from prior installs.
+  if [ -d "${SKILLS_SRC}/ddg-search" ]; then
+    run "cp -rf '${SKILLS_SRC}/ddg-search/.' '${CLAUDE_DIR}/skills/ddg-search/'"
+    ok "ddg-search: force-updated from repo"
+  fi
   ok "skills/ synced -> ~/.claude/skills/"
   info "  $(ls -1 "$SKILLS_SRC" 2>/dev/null | wc -l | tr -d ' ') skill(s) available"
 else
