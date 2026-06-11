@@ -13,7 +13,7 @@ def ddg_search(query: str) -> str:
         query: The search query string.
 
     Returns:
-        Formatted string with title, URL, and snippet for each result.
+        Formatted string with title, URL, and full body text for each result.
         Returns an error message if the search fails.
     """
     try:

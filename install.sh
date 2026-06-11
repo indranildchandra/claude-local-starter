@@ -383,15 +383,15 @@ else
 fi
 
 # Python dependencies for bundled skills (always run -- idempotent pip installs)
-# - yt-dlp   : YouTube transcript extraction for last30days
-# - ddgs     : DuckDuckGo search for ddg-search skill
-log "Installing Python skill dependencies (yt-dlp, ddgs==9.14.4)..."
+# - yt-dlp==2026.3.17  : YouTube transcript extraction for last30days
+# - ddgs==9.14.4       : DuckDuckGo search for ddg-search skill
+log "Installing Python skill dependencies (yt-dlp==2026.3.17, ddgs==9.14.4)..."
 if ! $DRY_RUN; then
-  pip install --quiet --upgrade yt-dlp "ddgs==9.14.4" \
-    && ok "Python skill deps installed: yt-dlp ddgs==9.14.4" \
-    || warn "pip install failed -- try manually: pip install yt-dlp 'ddgs==9.14.4'"
+  python3 -m pip install --quiet "yt-dlp==2026.3.17" "ddgs==9.14.4" \
+    && ok "Python skill deps installed: yt-dlp==2026.3.17 ddgs==9.14.4" \
+    || warn "pip install failed -- try manually: python3 -m pip install 'yt-dlp==2026.3.17' 'ddgs==9.14.4'"
 else
-  echo -e "${Y}[dry-run]${RESET} pip install --quiet --upgrade yt-dlp 'ddgs==9.14.4'"
+  echo -e "${Y}[dry-run]${RESET} python3 -m pip install 'yt-dlp==2026.3.17' 'ddgs==9.14.4'"
 fi
 
 # ════════════════════════════════════════════════════════════════
