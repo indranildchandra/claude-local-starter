@@ -1026,8 +1026,24 @@ else
 fi
 
 # Sync skills/ from repo into ~/.claude/skills/
-# Community skills are installed disabled by default (see step 5)
-# Repo skills go in enabled by default since they are project-specific
+# Sync strategy for bundled skills (skills/ in this repo → ~/.claude/skills/):
+#
+#   cp -rn  (no-overwrite, recursive)
+#     Used for ALL bundled skills by default. Copies files that don't yet exist
+#     at the destination but leaves existing files untouched. This preserves any
+#     local customisations a user has made to their installed skills (e.g. tweaked
+#     SKILL.md prompts, personal additions). Safe to re-run — idempotent.
+#
+#   cp -rf  (force-overwrite, recursive)
+#     Used selectively for skills whose repo source is the canonical truth and
+#     which receive active bugfixes that must reach existing installs. Overwrites
+#     the destination unconditionally on every run. Use this ONLY for skills where:
+#       (a) the script logic (not just docs) is actively maintained in this repo, AND
+#       (b) local user customisation of those files is unlikely / unsupported.
+#     Currently applied to: ddg-search (duckduckgo_search.py receives fixes)
+#
+# Rule of thumb: cp -rn for skills users may customise; cp -rf for bundled
+# scripts where this repo is the source of truth and stale code is a real risk.
 SKILLS_SRC="${SCRIPT_DIR}/skills"
 if [ -d "$SKILLS_SRC" ] && [ "$(ls -A "$SKILLS_SRC" 2>/dev/null)" ]; then
   run "mkdir -p '${CLAUDE_DIR}/skills'"

@@ -189,6 +189,19 @@ cat ~/.claude/plugin_commands.sh
 
 Place skill directories under `skills/` — each needs a `SKILL.md`. They sync to `~/.claude/skills/` on install.
 
+### Sync behaviour: `cp -rn` vs `cp -rf`
+
+The installer uses two copy strategies depending on whether a skill is user-customisable or always kept in sync with the repo:
+
+| Flag | Behaviour | When used |
+|------|-----------|-----------|
+| `cp -rn` (no-overwrite) | Copies files that don't exist at the destination; **leaves existing files untouched** | All bundled skills by default — preserves local tweaks a user may have made to their installed SKILL.md or supporting files |
+| `cp -rf` (force-overwrite) | **Overwrites the destination unconditionally** on every install run | Skills whose script logic is actively maintained in this repo and where stale code is a real risk (e.g. `ddg-search`) |
+
+**Rule of thumb:** use `cp -rn` for skills users might customise; use `cp -rf` for bundled scripts where this repo is the source of truth and every install should deliver the latest version.
+
+To opt a new bundled skill into force-updates, add a targeted `cp -rf` block after the general sync in `install.sh` (see the `ddg-search` block as the reference pattern).
+
 ## Adding custom commands
 
 Place `.md` files under `commands/` — they sync to `~/.claude/commands/` and become available as `/command-name` inside Claude Code.
