@@ -88,7 +88,56 @@ step "Pre-flight"
 check_dep git
 check_dep node
 check_dep npm
-check_dep python3
+
+# ── Python 3.12+ — install if missing or too old ──────────────────────────
+ensure_python312() {
+  local minor
+  minor=$(python3 -c "import sys; print(sys.version_info.minor)" 2>/dev/null)
+
+  if [ -n "$minor" ] && [ "$minor" -ge 12 ]; then
+    ok "python3 $(python3 --version 2>&1 | awk '{print $2}') found"
+    return
+  fi
+
+  log "Python 3.12+ required (found: $(python3 --version 2>/dev/null || echo 'none')). Installing..."
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    if ! command -v brew &>/dev/null; then
+      err "Homebrew required to auto-install Python on macOS. Install from https://brew.sh then re-run."
+      exit 1
+    fi
+    run "brew install python@3.12"
+    # Homebrew does not overwrite the system python3 symlink — prepend the
+    # unversioned shim so 'python3' resolves to 3.12 for this session and beyond.
+    export PATH="/opt/homebrew/opt/python@3.12/libexec/bin:/usr/local/opt/python@3.12/libexec/bin:$PATH"
+
+  elif command -v apt-get &>/dev/null; then
+    run "sudo apt-get update -qq"
+    run "sudo apt-get install -y python3.12 python3.12-venv python3-pip"
+    # Register 3.12 as the default python3 (priority 10 — higher wins)
+    run "sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 10 2>/dev/null || true"
+    hash -r 2>/dev/null || true
+
+  elif command -v dnf &>/dev/null; then
+    run "sudo dnf install -y python3.12"
+    hash -r 2>/dev/null || true
+
+  else
+    err "Cannot auto-install Python 3.12 on this platform."
+    err "Install Python 3.12 manually from https://python.org/downloads then re-run."
+    exit 1
+  fi
+
+  # Re-verify
+  minor=$(python3 -c "import sys; print(sys.version_info.minor)" 2>/dev/null)
+  if [ -n "$minor" ] && [ "$minor" -ge 12 ]; then
+    ok "python3.12 installed and active"
+  else
+    warn "Python 3.12 was installed but 'python3' may still point to an older version."
+    warn "Restart your shell and re-run install.sh if issues persist."
+  fi
+}
+ensure_python312
 
 # Bun -- required by claude-mem stop hook and several other plugins
 if command -v bun &>/dev/null; then
@@ -301,6 +350,7 @@ step "5 / Skills -- install via npx skills add"
 #   humanizer             strips AI writing patterns (blader)
 #   last30days            multi-source 30-day research (Reddit, HN, YouTube, GitHub, Polymarket)
 #   ddg-search            DuckDuckGo search fallback -- bundled from repo skills/
+#                         Python deps for last30days + ddg-search: see requirements.txt
 
 install_skill() {
   local pkg="$1"   # e.g. anthropics/skills
@@ -382,17 +432,15 @@ else
   done
 fi
 
-# Python dependencies for bundled skills (always run -- idempotent pip installs)
-# - yt-dlp==2026.3.17  : YouTube transcript extraction for last30days
-# - ddgs==9.14.4       : DuckDuckGo search for ddg-search skill
-log "Installing Python skill dependencies (yt-dlp==2026.3.17, ddgs==9.14.4)..."
+# Python dependencies for bundled skills — versions managed in requirements.txt
+log "Installing Python skill dependencies from requirements.txt..."
 if ! $DRY_RUN; then
-  python3 -m pip install --quiet --no-input "yt-dlp==2026.3.17" "ddgs==9.14.4" --break-system-packages 2>/dev/null \
-    || python3 -m pip install --quiet --no-input "yt-dlp==2026.3.17" "ddgs==9.14.4" \
-    && ok "Python skill deps installed: yt-dlp==2026.3.17 ddgs==9.14.4" \
-    || warn "pip install failed -- try manually: python3 -m pip install 'yt-dlp==2026.3.17' 'ddgs==9.14.4'"
+  python3 -m pip install --quiet --no-input -r "${SCRIPT_DIR}/requirements.txt" --break-system-packages 2>/dev/null \
+    || python3 -m pip install --quiet --no-input -r "${SCRIPT_DIR}/requirements.txt" \
+    && ok "Python skill deps installed (see requirements.txt)" \
+    || warn "pip install failed -- try manually: python3 -m pip install -r '${SCRIPT_DIR}/requirements.txt'"
 else
-  echo -e "${Y}[dry-run]${RESET} python3 -m pip install --no-input 'yt-dlp==2026.3.17' 'ddgs==9.14.4'"
+  echo -e "${Y}[dry-run]${RESET} python3 -m pip install --no-input -r '${SCRIPT_DIR}/requirements.txt'"
 fi
 
 # ════════════════════════════════════════════════════════════════

@@ -84,6 +84,7 @@ Always open this installed copy — not the `claude-local-starter.html` file in 
 | `settings.json` | Source of truth for `~/.claude/settings.json` |
 | `commands/` | Custom slash commands synced to `~/.claude/commands/` |
 | `skills/` | Custom skills synced to `~/.claude/skills/` |
+| `requirements.txt` | Pinned Python deps for bundled skills — edit here, `install.sh` reads from it |
 | `claude-local-starter.html` | Visual dashboard — open the copy at `~/.claude/`, not this file |
 
 ## Shell functions (available after install)
@@ -217,7 +218,7 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 | `aidlc-tracking` | Canonical formats for all project tracking files — `plan.md`, `todo.md`, `tracker.md`, `lessons.md`, `changelog.md`, `design-review.md`. Exists so Claude never invents its own structure for these files and every project looks the same. |
 | `review-council` | Spins up a multi-persona review council for architecture and design decisions. 20 expert personas, parallel subagent analysis, structured debate, converges on a verdict with your input. Heavy but useful for decisions that actually matter. |
 | `ppt-creator` | Full presentation pipeline from brief to `.pptx`. Research → narrative → design system enforcement → Visual QA before output. Produces conference-ready decks in a consistent personal design system. Triggered via `/create-ppt`. |
-| `ddg-search` | DuckDuckGo web search with zero dependencies beyond `pip install 'ddgs==9.14.4'`. Exposes a Python script Claude can call via Bash when native WebSearch/WebFetch isn't available — useful for locally-hosted models or restricted environments. Pairs well with `last30days` as a supplemental search layer. |
+| `ddg-search` | DuckDuckGo web search with a single Python dependency (`ddgs`, pinned in `requirements.txt`). Exposes a Python script Claude can call via Bash when native WebSearch/WebFetch isn't available — useful for locally-hosted models or restricted environments. Pairs well with `last30days` as a supplemental search layer. |
 
 **Slash commands**
 
