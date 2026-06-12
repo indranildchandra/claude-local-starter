@@ -119,17 +119,31 @@ ensure_python312() {
   elif command -v apt-get &>/dev/null; then
     run "DEBIAN_FRONTEND=noninteractive sudo apt-get update -qq"
     run "DEBIAN_FRONTEND=noninteractive sudo apt-get install -y python3.12"
-    # Register 3.12 as the default python3 (priority 10 — higher wins)
-    run "sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 10 2>/dev/null || true"
+    # Priority 100 beats the typical system-Python entry (50-70) + force-set so there's
+    # no ambiguity if multiple entries exist at the same priority
+    run "sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 100 2>/dev/null || true"
+    run "sudo update-alternatives --set python3 /usr/bin/python3.12 2>/dev/null || true"
     # python3-pip installs pip for the system Python, not 3.12 — bootstrap via ensurepip
     run "python3.12 -m ensurepip --upgrade 2>/dev/null || true"
     run "python3.12 -m pip install --upgrade pip --quiet 2>/dev/null || true"
     hash -r 2>/dev/null || true
+    # Persist to shell RC — update-alternatives changes /usr/bin/python3 system-wide but
+    # the user's interactive shell needs an explicit alias to guarantee the right version
+    if ! grep -q "python3.12" "$SHELL_RC" 2>/dev/null && ! $DRY_RUN; then
+      { echo ''; echo '# python3.12 set as default python3 by claude-local-starter'; echo 'alias python3=python3.12'; } >> "$SHELL_RC"
+      ok "python3.12 alias written to $SHELL_RC"
+    fi
 
   elif command -v dnf &>/dev/null; then
     run "sudo dnf install -y python3.12 python3.12-pip"
-    run "sudo alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 10 2>/dev/null || true"
+    run "sudo alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 100 2>/dev/null || true"
+    run "sudo alternatives --set python3 /usr/bin/python3.12 2>/dev/null || true"
     hash -r 2>/dev/null || true
+    # Persist to shell RC
+    if ! grep -q "python3.12" "$SHELL_RC" 2>/dev/null && ! $DRY_RUN; then
+      { echo ''; echo '# python3.12 set as default python3 by claude-local-starter'; echo 'alias python3=python3.12'; } >> "$SHELL_RC"
+      ok "python3.12 alias written to $SHELL_RC"
+    fi
 
   else
     err "Cannot auto-install Python 3.12 on this platform."
