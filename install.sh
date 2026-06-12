@@ -90,6 +90,17 @@ check_dep node
 check_dep npm
 
 # ── Python 3.12+ — install if missing or too old ──────────────────────────
+
+# Write `alias python3=python3.12` to shell RC exactly once (idempotent).
+# Checks for the specific alias line — not just any mention of python3.12 — to
+# avoid false-positive matches from pyenv paths, comments, or virtualenv lines.
+_write_python312_rc_alias() {
+  if ! grep -q 'alias python3=python3.12' "$SHELL_RC" 2>/dev/null && ! $DRY_RUN; then
+    { echo ''; echo '# python3.12 set as default python3 by claude-local-starter'; echo 'alias python3=python3.12'; } >> "$SHELL_RC"
+    ok "python3.12 alias written to $SHELL_RC"
+  fi
+}
+
 ensure_python312() {
   local py_ok
   py_ok=$(python3 -c "import sys; v=sys.version_info; print('yes' if (v.major,v.minor)>=(3,12) else 'no')" 2>/dev/null)
@@ -107,13 +118,16 @@ ensure_python312() {
       exit 1
     fi
     run "brew install python@3.12"
-    # Homebrew does not overwrite the system python3 symlink — prepend the
-    # unversioned shim so 'python3' resolves to 3.12 for this session.
-    export PATH="/opt/homebrew/opt/python@3.12/libexec/bin:/usr/local/opt/python@3.12/libexec/bin:$PATH"
-    # Persist to shell RC so future sessions also resolve python3 → 3.12
-    if ! grep -q "python@3.12" "$SHELL_RC" 2>/dev/null && ! $DRY_RUN; then
-      echo 'export PATH="/opt/homebrew/opt/python@3.12/libexec/bin:/usr/local/opt/python@3.12/libexec/bin:$PATH"  # python3.12' >> "$SHELL_RC"
-      ok "python@3.12 PATH persisted to $SHELL_RC"
+    # Resolve the actual Homebrew prefix dynamically — handles non-default HOMEBREW_PREFIX.
+    # Guard with ! DRY_RUN because brew --prefix python@3.12 requires the package installed.
+    if ! $DRY_RUN; then
+      _brew_py312="$(brew --prefix python@3.12 2>/dev/null)/libexec/bin"
+      export PATH="${_brew_py312}:$PATH"
+      # Persist to shell RC so future sessions also resolve python3 → 3.12
+      if ! grep -q "python@3.12" "$SHELL_RC" 2>/dev/null; then
+        echo "export PATH=\"${_brew_py312}:\${PATH}\"  # python3.12" >> "$SHELL_RC"
+        ok "python@3.12 PATH persisted to $SHELL_RC"
+      fi
     fi
 
   elif command -v apt-get &>/dev/null; then
@@ -129,21 +143,18 @@ ensure_python312() {
     hash -r 2>/dev/null || true
     # Persist to shell RC — update-alternatives changes /usr/bin/python3 system-wide but
     # the user's interactive shell needs an explicit alias to guarantee the right version
-    if ! grep -q "python3.12" "$SHELL_RC" 2>/dev/null && ! $DRY_RUN; then
-      { echo ''; echo '# python3.12 set as default python3 by claude-local-starter'; echo 'alias python3=python3.12'; } >> "$SHELL_RC"
-      ok "python3.12 alias written to $SHELL_RC"
-    fi
+    _write_python312_rc_alias
 
   elif command -v dnf &>/dev/null; then
-    run "sudo dnf install -y python3.12 python3.12-pip"
+    run "sudo dnf install -y python3.12"
     run "sudo alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 100 2>/dev/null || true"
     run "sudo alternatives --set python3 /usr/bin/python3.12 2>/dev/null || true"
+    # python3.12-pip is absent on Fedora <37 / RHEL Stream — bootstrap via ensurepip (stdlib)
+    run "python3.12 -m ensurepip --upgrade 2>/dev/null || true"
+    run "python3.12 -m pip install --upgrade pip --quiet 2>/dev/null || true"
     hash -r 2>/dev/null || true
     # Persist to shell RC
-    if ! grep -q "python3.12" "$SHELL_RC" 2>/dev/null && ! $DRY_RUN; then
-      { echo ''; echo '# python3.12 set as default python3 by claude-local-starter'; echo 'alias python3=python3.12'; } >> "$SHELL_RC"
-      ok "python3.12 alias written to $SHELL_RC"
-    fi
+    _write_python312_rc_alias
 
   else
     err "Cannot auto-install Python 3.12 on this platform."
@@ -555,7 +566,7 @@ if command -v pyright &>/dev/null; then
   warn "pyright already installed"
 else
   log "Installing pyright..."
-  run "pip install pyright --break-system-packages 2>/dev/null || pip install pyright"
+  run "python3 -m pip install pyright --break-system-packages 2>/dev/null || python3 -m pip install pyright"
   ok "pyright installed"
 fi
 
