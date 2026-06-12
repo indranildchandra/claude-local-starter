@@ -91,10 +91,10 @@ check_dep npm
 
 # ── Python 3.12+ — install if missing or too old ──────────────────────────
 ensure_python312() {
-  local minor
-  minor=$(python3 -c "import sys; print(sys.version_info.minor)" 2>/dev/null)
+  local py_ok
+  py_ok=$(python3 -c "import sys; v=sys.version_info; print('yes' if (v.major,v.minor)>=(3,12) else 'no')" 2>/dev/null)
 
-  if [ -n "$minor" ] && [ "$minor" -ge 12 ]; then
+  if [ "$py_ok" = "yes" ]; then
     ok "python3 $(python3 --version 2>&1 | awk '{print $2}') found"
     return
   fi
@@ -108,18 +108,27 @@ ensure_python312() {
     fi
     run "brew install python@3.12"
     # Homebrew does not overwrite the system python3 symlink — prepend the
-    # unversioned shim so 'python3' resolves to 3.12 for this session and beyond.
+    # unversioned shim so 'python3' resolves to 3.12 for this session.
     export PATH="/opt/homebrew/opt/python@3.12/libexec/bin:/usr/local/opt/python@3.12/libexec/bin:$PATH"
+    # Persist to shell RC so future sessions also resolve python3 → 3.12
+    if ! grep -q "python@3.12" "$SHELL_RC" 2>/dev/null && ! $DRY_RUN; then
+      echo 'export PATH="/opt/homebrew/opt/python@3.12/libexec/bin:/usr/local/opt/python@3.12/libexec/bin:$PATH"  # python3.12' >> "$SHELL_RC"
+      ok "python@3.12 PATH persisted to $SHELL_RC"
+    fi
 
   elif command -v apt-get &>/dev/null; then
-    run "sudo apt-get update -qq"
-    run "sudo apt-get install -y python3.12 python3.12-venv python3-pip"
+    run "DEBIAN_FRONTEND=noninteractive sudo apt-get update -qq"
+    run "DEBIAN_FRONTEND=noninteractive sudo apt-get install -y python3.12"
     # Register 3.12 as the default python3 (priority 10 — higher wins)
     run "sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 10 2>/dev/null || true"
+    # python3-pip installs pip for the system Python, not 3.12 — bootstrap via ensurepip
+    run "python3.12 -m ensurepip --upgrade 2>/dev/null || true"
+    run "python3.12 -m pip install --upgrade pip --quiet 2>/dev/null || true"
     hash -r 2>/dev/null || true
 
   elif command -v dnf &>/dev/null; then
-    run "sudo dnf install -y python3.12"
+    run "sudo dnf install -y python3.12 python3.12-pip"
+    run "sudo alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 10 2>/dev/null || true"
     hash -r 2>/dev/null || true
 
   else
@@ -128,13 +137,16 @@ ensure_python312() {
     exit 1
   fi
 
-  # Re-verify
-  minor=$(python3 -c "import sys; print(sys.version_info.minor)" 2>/dev/null)
-  if [ -n "$minor" ] && [ "$minor" -ge 12 ]; then
-    ok "python3.12 installed and active"
-  else
-    warn "Python 3.12 was installed but 'python3' may still point to an older version."
-    warn "Restart your shell and re-run install.sh if issues persist."
+  # Re-verify (skip in dry-run — installation was simulated, not applied)
+  if ! $DRY_RUN; then
+    py_ok=$(python3 -c "import sys; v=sys.version_info; print('yes' if (v.major,v.minor)>=(3,12) else 'no')" 2>/dev/null)
+    if [ "$py_ok" = "yes" ]; then
+      ok "python3.12 installed and active"
+    else
+      err "Python 3.12 was installed but 'python3' still points to an older version."
+      err "Restart your shell and re-run install.sh, or add 'python3.12' to your PATH manually."
+      exit 1
+    fi
   fi
 }
 ensure_python312
