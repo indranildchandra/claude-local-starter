@@ -33,3 +33,4 @@ docs/
 
 TALK-PLAN.md
 LOCAL-MODEL-TRANSITION-PLAN.md
+__pycache__/
