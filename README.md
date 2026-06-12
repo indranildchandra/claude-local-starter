@@ -22,7 +22,7 @@ Think of it as the all-stars setup — not everything available, just the things
 |-----------|---------|
 | `~/.claude/CLAUDE.md` | Global Claude Code behaviour (from `claude-md-master/CLAUDE.md`) |
 | `~/.claude/settings.json` | Plugins, env vars, MCP servers, hooks (deep-merged) |
-| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, aidlc-tracking, review-council, ppt-creator |
+| `~/.claude/skills/` | frontend-design, ui-ux-pro-max, shadcn, web-design-guidelines, humanizer, aidlc-tracking, review-council, ppt-creator, last30days, ddg-search |
 | `~/.claude/commands/` | `/init-repo`, `/design-review`, `/log-context`, `/create-ppt` |
 | LSP binaries | typescript-language-server (enabled), pyright (enabled), gopls, rust-analyzer, jdtls |
 | Browser automation | `@playwright/cli` with skills + Chromium |
@@ -84,6 +84,7 @@ Always open this installed copy — not the `claude-local-starter.html` file in 
 | `settings.json` | Source of truth for `~/.claude/settings.json` |
 | `commands/` | Custom slash commands synced to `~/.claude/commands/` |
 | `skills/` | Custom skills synced to `~/.claude/skills/` |
+| `requirements.txt` | Pinned Python deps for bundled skills — edit here, `install.sh` reads from it |
 | `claude-local-starter.html` | Visual dashboard — open the copy at `~/.claude/`, not this file |
 
 ## Shell functions (available after install)
@@ -155,7 +156,9 @@ Synced to `~/.claude/skills/` on install.
 | `aidlc-tracking` | bundled (this repo) |
 | `review-council` | bundled (this repo) |
 | `ppt-creator` | bundled (this repo) |
+| `ddg-search` | bundled (this repo) — DuckDuckGo search fallback, zero API keys |
 | `humanizer` | [blader/humanizer](https://github.com/blader/humanizer) |
+| `last30days` | [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill) — free tier: Reddit, HN, YouTube, GitHub, Polymarket |
 | `playwright-cli` | [microsoft/playwright-cli](https://github.com/microsoft/playwright-cli) |
 | `ui-ux-pro-max` | [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) |
 | `shadcn` | [shadcn-ui/ui](https://github.com/shadcn-ui/ui/tree/main/skills/shadcn) |
@@ -187,6 +190,19 @@ cat ~/.claude/plugin_commands.sh
 
 Place skill directories under `skills/` — each needs a `SKILL.md`. They sync to `~/.claude/skills/` on install.
 
+### Sync behaviour: `cp -rn` vs `cp -rf`
+
+The installer uses two copy strategies depending on whether a skill is user-customisable or always kept in sync with the repo:
+
+| Flag | Behaviour | When used |
+|------|-----------|-----------|
+| `cp -rn` (no-overwrite) | Copies files that don't exist at the destination; **leaves existing files untouched** | All bundled skills by default — preserves local tweaks a user may have made to their installed SKILL.md or supporting files |
+| `cp -rf` (force-overwrite) | **Overwrites the destination unconditionally** on every install run | Skills whose script logic is actively maintained in this repo and where stale code is a real risk (e.g. `ddg-search`) |
+
+**Rule of thumb:** use `cp -rn` for skills users might customise; use `cp -rf` for bundled scripts where this repo is the source of truth and every install should deliver the latest version.
+
+To opt a new bundled skill into force-updates, add a targeted `cp -rf` block after the general sync in `install.sh` (see the `ddg-search` block as the reference pattern).
+
 ## Adding custom commands
 
 Place `.md` files under `commands/` — they sync to `~/.claude/commands/` and become available as `/command-name` inside Claude Code.
@@ -202,6 +218,7 @@ A few things in this repo aren't pulled from anywhere — they're written specif
 | `aidlc-tracking` | Canonical formats for all project tracking files — `plan.md`, `todo.md`, `tracker.md`, `lessons.md`, `changelog.md`, `design-review.md`. Exists so Claude never invents its own structure for these files and every project looks the same. |
 | `review-council` | Spins up a multi-persona review council for architecture and design decisions. 20 expert personas, parallel subagent analysis, structured debate, converges on a verdict with your input. Heavy but useful for decisions that actually matter. |
 | `ppt-creator` | Full presentation pipeline from brief to `.pptx`. Research → narrative → design system enforcement → Visual QA before output. Produces conference-ready decks in a consistent personal design system. Triggered via `/create-ppt`. |
+| `ddg-search` | DuckDuckGo web search with a single Python dependency (`ddgs`, pinned in `requirements.txt`). Exposes a Python script Claude can call via Bash when native WebSearch/WebFetch isn't available — useful for locally-hosted models or restricted environments. Pairs well with `last30days` as a supplemental search layer. |
 
 **Slash commands**
 

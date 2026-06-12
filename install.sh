@@ -88,7 +88,93 @@ step "Pre-flight"
 check_dep git
 check_dep node
 check_dep npm
-check_dep python3
+
+# ── Python 3.12+ — install if missing or too old ──────────────────────────
+
+# Write `alias python3=python3.12` to shell RC exactly once (idempotent).
+# Checks for the specific alias line — not just any mention of python3.12 — to
+# avoid false-positive matches from pyenv paths, comments, or virtualenv lines.
+_write_python312_rc_alias() {
+  if ! grep -q 'alias python3=python3.12' "$SHELL_RC" 2>/dev/null && ! $DRY_RUN; then
+    { echo ''; echo '# python3.12 set as default python3 by claude-local-starter'; echo 'alias python3=python3.12'; } >> "$SHELL_RC"
+    ok "python3.12 alias written to $SHELL_RC"
+  fi
+}
+
+ensure_python312() {
+  local py_ok
+  py_ok=$(python3 -c "import sys; v=sys.version_info; print('yes' if (v.major,v.minor)>=(3,12) else 'no')" 2>/dev/null)
+
+  if [ "$py_ok" = "yes" ]; then
+    ok "python3 $(python3 --version 2>&1 | awk '{print $2}') found"
+    return
+  fi
+
+  log "Python 3.12+ required (found: $(python3 --version 2>/dev/null || echo 'none')). Installing..."
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    if ! command -v brew &>/dev/null; then
+      err "Homebrew required to auto-install Python on macOS. Install from https://brew.sh then re-run."
+      exit 1
+    fi
+    run "brew install python@3.12"
+    # Resolve the actual Homebrew prefix dynamically — handles non-default HOMEBREW_PREFIX.
+    # Guard with ! DRY_RUN because brew --prefix python@3.12 requires the package installed.
+    if ! $DRY_RUN; then
+      _brew_py312="$(brew --prefix python@3.12 2>/dev/null)/libexec/bin"
+      export PATH="${_brew_py312}:$PATH"
+      # Persist to shell RC so future sessions also resolve python3 → 3.12
+      if ! grep -q "python@3.12" "$SHELL_RC" 2>/dev/null; then
+        echo "export PATH=\"${_brew_py312}:\${PATH}\"  # python3.12" >> "$SHELL_RC"
+        ok "python@3.12 PATH persisted to $SHELL_RC"
+      fi
+    fi
+
+  elif command -v apt-get &>/dev/null; then
+    run "DEBIAN_FRONTEND=noninteractive sudo apt-get update -qq"
+    run "DEBIAN_FRONTEND=noninteractive sudo apt-get install -y python3.12"
+    # Priority 100 beats the typical system-Python entry (50-70) + force-set so there's
+    # no ambiguity if multiple entries exist at the same priority
+    run "sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 100 2>/dev/null || true"
+    run "sudo update-alternatives --set python3 /usr/bin/python3.12 2>/dev/null || true"
+    # python3-pip installs pip for the system Python, not 3.12 — bootstrap via ensurepip
+    run "python3.12 -m ensurepip --upgrade 2>/dev/null || true"
+    run "python3.12 -m pip install --upgrade pip --quiet 2>/dev/null || true"
+    hash -r 2>/dev/null || true
+    # Persist to shell RC — update-alternatives changes /usr/bin/python3 system-wide but
+    # the user's interactive shell needs an explicit alias to guarantee the right version
+    _write_python312_rc_alias
+
+  elif command -v dnf &>/dev/null; then
+    run "sudo dnf install -y python3.12"
+    run "sudo alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 100 2>/dev/null || true"
+    run "sudo alternatives --set python3 /usr/bin/python3.12 2>/dev/null || true"
+    # python3.12-pip is absent on Fedora <37 / RHEL Stream — bootstrap via ensurepip (stdlib)
+    run "python3.12 -m ensurepip --upgrade 2>/dev/null || true"
+    run "python3.12 -m pip install --upgrade pip --quiet 2>/dev/null || true"
+    hash -r 2>/dev/null || true
+    # Persist to shell RC
+    _write_python312_rc_alias
+
+  else
+    err "Cannot auto-install Python 3.12 on this platform."
+    err "Install Python 3.12 manually from https://python.org/downloads then re-run."
+    exit 1
+  fi
+
+  # Re-verify (skip in dry-run — installation was simulated, not applied)
+  if ! $DRY_RUN; then
+    py_ok=$(python3 -c "import sys; v=sys.version_info; print('yes' if (v.major,v.minor)>=(3,12) else 'no')" 2>/dev/null)
+    if [ "$py_ok" = "yes" ]; then
+      ok "python3.12 installed and active"
+    else
+      err "Python 3.12 was installed but 'python3' still points to an older version."
+      err "Restart your shell and re-run install.sh, or add 'python3.12' to your PATH manually."
+      exit 1
+    fi
+  fi
+}
+ensure_python312
 
 # Bun -- required by claude-mem stop hook and several other plugins
 if command -v bun &>/dev/null; then
@@ -299,6 +385,9 @@ step "5 / Skills -- install via npx skills add"
 #   shadcn-ui             shadcn/ui deep knowledge  (npx skills add shadcn/ui)
 #   web-design-guidelines Vercel Labs web design best practices
 #   humanizer             strips AI writing patterns (blader)
+#   last30days            multi-source 30-day research (Reddit, HN, YouTube, GitHub, Polymarket)
+#   ddg-search            DuckDuckGo search fallback -- bundled from repo skills/
+#                         Python deps for last30days + ddg-search: see requirements.txt
 
 install_skill() {
   local pkg="$1"   # e.g. anthropics/skills
@@ -337,17 +426,18 @@ install_skill "anthropics/skills"                              "frontend-design"
 install_skill "nextlevelbuilder/ui-ux-pro-max-skill"           "ui-ux-pro-max"
 install_skill "shadcn/ui"                                      "shadcn"
 install_skill "vercel-labs/agent-skills"                       "web-design-guidelines"
+install_skill "mvanhorn/last30days-skill"                      "last30days"
 
 # Patch community skills: inject disable-model-invocation: true if missing.
 # Skills remain installed and user-invocable via /skill-name but cost
 # zero tokens at session start (not listed in Claude's context).
-for skill in frontend-design ui-ux-pro-max shadcn web-design-guidelines; do
+for skill in frontend-design ui-ux-pro-max shadcn web-design-guidelines last30days; do
   skill_md="${CLAUDE_DIR}/skills/${skill}/SKILL.md"
   if [ -f "$skill_md" ] && ! grep -q "disable-model-invocation" "$skill_md"; then
     if ! $DRY_RUN; then
-      skill_md_escaped="${skill_md}"
-      python3 -c "
-p = '${skill_md_escaped}'
+      SKILL_MD_PATH="${skill_md}" python3 -c "
+import os
+p = os.environ['SKILL_MD_PATH']
 c = open(p).read()
 if c.startswith('---'):
     c = c.replace('---\n', '---\ndisable-model-invocation: true\n', 1)
@@ -377,6 +467,17 @@ else
   for skill in "${BUNDLED_SKILLS[@]}"; do
     ok "skill:${skill} present"
   done
+fi
+
+# Python dependencies for bundled skills — versions managed in requirements.txt
+log "Installing Python skill dependencies from requirements.txt..."
+if ! $DRY_RUN; then
+  python3 -m pip install --quiet --no-input -r "${SCRIPT_DIR}/requirements.txt" --break-system-packages 2>/dev/null \
+    || python3 -m pip install --quiet --no-input -r "${SCRIPT_DIR}/requirements.txt" \
+    && ok "Python skill deps installed (see requirements.txt)" \
+    || warn "pip install failed -- try manually: python3 -m pip install -r '${SCRIPT_DIR}/requirements.txt'"
+else
+  echo -e "${Y}[dry-run]${RESET} python3 -m pip install --no-input -r '${SCRIPT_DIR}/requirements.txt'"
 fi
 
 # ════════════════════════════════════════════════════════════════
@@ -465,7 +566,7 @@ if command -v pyright &>/dev/null; then
   warn "pyright already installed"
 else
   log "Installing pyright..."
-  run "pip install pyright --break-system-packages 2>/dev/null || pip install pyright"
+  run "python3 -m pip install pyright --break-system-packages 2>/dev/null || python3 -m pip install pyright"
   ok "pyright installed"
 fi
 
@@ -1010,12 +1111,34 @@ else
 fi
 
 # Sync skills/ from repo into ~/.claude/skills/
-# Community skills are installed disabled by default (see step 5)
-# Repo skills go in enabled by default since they are project-specific
+# Sync strategy for bundled skills (skills/ in this repo → ~/.claude/skills/):
+#
+#   cp -rn  (no-overwrite, recursive)
+#     Used for ALL bundled skills by default. Copies files that don't yet exist
+#     at the destination but leaves existing files untouched. This preserves any
+#     local customisations a user has made to their installed skills (e.g. tweaked
+#     SKILL.md prompts, personal additions). Safe to re-run — idempotent.
+#
+#   cp -rf  (force-overwrite, recursive)
+#     Used selectively for skills whose repo source is the canonical truth and
+#     which receive active bugfixes that must reach existing installs. Overwrites
+#     the destination unconditionally on every run. Use this ONLY for skills where:
+#       (a) the script logic (not just docs) is actively maintained in this repo, AND
+#       (b) local user customisation of those files is unlikely / unsupported.
+#     Currently applied to: ddg-search (duckduckgo_search.py receives fixes)
+#
+# Rule of thumb: cp -rn for skills users may customise; cp -rf for bundled
+# scripts where this repo is the source of truth and stale code is a real risk.
 SKILLS_SRC="${SCRIPT_DIR}/skills"
 if [ -d "$SKILLS_SRC" ] && [ "$(ls -A "$SKILLS_SRC" 2>/dev/null)" ]; then
   run "mkdir -p '${CLAUDE_DIR}/skills'"
   run "cp -rn '$SKILLS_SRC/.' '${CLAUDE_DIR}/skills/' || true"  # -n: no overwrite; || true: existing files return non-zero on macOS
+  # Force-update ddg-search on every run — its Python script receives active bugfixes
+  # and cp -rn above won't overwrite existing files from prior installs.
+  if [ -d "${SKILLS_SRC}/ddg-search" ]; then
+    run "cp -rf '${SKILLS_SRC}/ddg-search/.' '${CLAUDE_DIR}/skills/ddg-search/'"
+    ok "ddg-search: force-updated from repo"
+  fi
   ok "skills/ synced -> ~/.claude/skills/"
   info "  $(ls -1 "$SKILLS_SRC" 2>/dev/null | wc -l | tr -d ' ') skill(s) available"
 else
