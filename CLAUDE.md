@@ -239,7 +239,7 @@ corresponding format from the `aidlc-tracking` skill (`formats/<file>.md`) — n
 | `tasks/lessons.md` | Per-repo learning log, one entry per lesson | Append newest at top | `aidlc-tracking/formats/lessons.md` |
 | `audit/changelog.md` | What changed in the codebase, written **after** implementation | Append newest at top | `aidlc-tracking/formats/changelog.md` |
 | `docs/design-review.md` | Council review output from `/design-review` | Append newest at top | `aidlc-tracking/formats/design-review.md` |
-| `docs/impl-notes/<timestamp>_<slug>.html` | Running implementation journal for spec-driven work — embeds the spec, captures decisions/deviations/tradeoffs/open questions **during** implementation. One file per spec per iteration start. | Update in-place within the session; never overwrite a previous file; created only when a `<SPEC>` block is present | `aidlc-tracking/formats/impl-notes.html` |
+| `docs/impl-notes/<timestamp>_<slug>.md` | Running implementation journal for spec-driven work — embeds the spec, captures decisions/deviations/tradeoffs/open questions **during** implementation. One file per spec per iteration start. | Update in-place within the session; never overwrite a previous file; created only when a `<SPEC>` block is present | `aidlc-tracking/formats/impl-notes.md` |
 
 ### `<SPEC>` Convention
 
@@ -248,14 +248,14 @@ When a user message contains a `<SPEC>` block:
 1. **Derive the filename** using local timezone timestamp + slug:
    - Timestamp: `date '+%Y-%m-%dT%H-%M-%S'` (local timezone)
    - Slug: use `title` attribute if present (`<SPEC title="auth-module">`); otherwise derive from the first non-empty line of the spec (lowercase, spaces/punctuation → hyphens, max 48 chars)
-   - Result: `docs/impl-notes/YYYY-MM-DDTHH-MM-SS_<slug>.html`
-2. **Create** the file using the `aidlc-tracking/formats/impl-notes.html` template — embed the full spec verbatim in the `#spec` section
+   - Result: `docs/impl-notes/YYYY-MM-DDTHH-MM-SS_<slug>.md`
+2. **Create** the file using the `aidlc-tracking/formats/impl-notes.md` template — embed the full spec verbatim in the Spec section
 3. **Implement** the spec, updating the file in-place as you work:
    - Add a **Decision** entry whenever the spec is ambiguous and you make a choice
    - Add a **Deviation** entry whenever you intentionally depart from the spec
    - Add a **Tradeoff** entry whenever you choose one approach over a considered alternative
    - Add an **Open Question** entry for anything requiring user confirmation
-4. **Regenerate** `docs/impl-notes/index.html` after creating the file and after any status change
+4. **Regenerate** `docs/impl-notes/index.md` after creating the file and after any status change
 5. **Resolve** all open questions before marking status `complete`, or explicitly defer with a note
 6. Never overwrite a previous impl-notes file — each `<SPEC>` invocation always produces a new timestamped file, even for the same module
 7. `docs/impl-notes/` is the **during** artifact layer — it does not replace `docs/plan.md` (before) or `audit/changelog.md` (after); maintain all three
