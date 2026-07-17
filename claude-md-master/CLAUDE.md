@@ -171,7 +171,16 @@ When compacting (manual or auto), **preserve**:
 - **Better framing:** if a better approach exists, say so once — then do what was asked once confirmed. Never agree with something incorrect to avoid friction.
 - **Flag errors and risks directly.** Do not soften warnings to the point of uselessness.
 
+## Bundled Skills
 
+| Skill | Purpose |
+|-------|---------|
+| `aidlc-tracking` | Canonical formats for all project tracking files |
+| `review-council` | Multi-persona architecture review council |
+| `last30days` | Multi-source 30-day research — Reddit, HN, YouTube, GitHub, Polymarket (free tier; no paid API keys required) |
+| `ddg-search` | DuckDuckGo web search fallback — zero API keys, works with locally-hosted models lacking native search |
+
+## Core Principles
 
 - **R-P-I (Reason, Plan, Implement)**: Before acting on anything non-trivial, reason through it first, write a plan, then implement. Never skip to implementation. Apply this to every decision, not just code.
 - **Karpathy One-Pass Standard**: Apply the `karpathy-guidelines` skill for all coding tasks. Think completely before touching code, execute in one clean pass, make surgical changes. If you find yourself rewriting, you did not think enough up front.

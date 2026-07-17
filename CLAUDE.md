@@ -121,6 +121,8 @@ Place skill directories under `skills/` — each needs a `SKILL.md`. The install
 | `emil-design-eng` | Design engineering from Emil Kowalski — easing, timing, motion, micro-interactions that feel intentional |
 | `impeccable` | 18 design commands (`/audit`, `/polish`, `/typeset`, `/animate`…) that eliminate AI-slop aesthetics |
 | `taste-skill` | Three configurable design dials (variance, motion, density) to stop AI shipping generic centred layouts |
+| `last30days` | Multi-source 30-day research — Reddit, HN, YouTube, GitHub, Polymarket (free tier; no paid API keys required) |
+| `ddg-search` | DuckDuckGo web search fallback — zero API keys, works with locally-hosted models lacking native search |
 
 ### Adding Custom Commands
 
