@@ -1,0 +1,7 @@
+# Python dependencies for bundled skills
+# Pinned versions — update here and re-run install.sh to propagate.
+#
+# ddg-search skill
+ddgs==9.14.4
+# last30days skill (YouTube transcript extraction)
+yt-dlp==2026.3.17

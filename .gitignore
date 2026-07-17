@@ -38,3 +38,4 @@ tasks/
 TALK-PLAN.md
 LOCAL-MODEL-TRANSITION-PLAN.md
 history.jsonl
+__pycache__/
