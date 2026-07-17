@@ -117,8 +117,13 @@ avoid bloat / overlap):
 - **`main`** still ships `ppt-creator` bundled and its new "Bundled Skills" table documents it.
 
 A naive merge keeps this branch's deletion (git resolves delete-vs-unchanged silently)
-**but** pulls in `main`'s doc row → dangling reference. Resolution direction is a product
-decision (see reconciliation notes at merge time).
+**but** pulls in `main`'s doc row → dangling reference.
+
+**Resolution (merge `09dd533`): kept removed.** This branch's externalization was explicit
+and documented; `main`'s inclusion was incidental (its Bundled Skills table was added in a
+commit primarily about last30days/ddg-search). The merge drops `main`'s `ppt-creator`
+files and doc rows so the branch stays internally consistent with "installed externally."
+One-line reversible if the intent was actually to restore it.
 
 ### Merge conflict set (verified via dry-run)
 
@@ -146,5 +151,8 @@ All Phase 1–5 deliverables are present and internally consistent on the branch
 actually npx-installed (`openhands/extensions`), not vendored in `skills/`. Cosmetic
 mislabel that predates this branch's work.
 
-**Open reconciliation item:** `ppt-creator` direction (keep externalized vs. restore from
-`main`) — resolved at merge time.
+**Reconciliation result:** `main` synced in via merge `09dd533` (last30days, ddg-search,
+`ensure_python312`, `requirements.txt`, `__pycache__/`). `ppt-creator` kept removed per this
+branch's explicit externalization decision. All 5 conflicts resolved as unions of both sides'
+intent; E2E lifecycle suite green (28/0/1-skip); HTML dashboard auto-merged cleanly with no
+dangling references.
